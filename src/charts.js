@@ -8,25 +8,44 @@ const Charts = (() => {
   const instances = {};
 
   const COLORS = {
+    white:      '#ffffff',
+    whiteGlow:  'rgba(255,255,255,0.08)',
+    cyan:       '#22d3ee',
+    cyanLight:  'rgba(34,211,238,0.15)',
     blue:       '#3b82f6',
     blueLight:  'rgba(59,130,246,0.15)',
-    green:      '#10b981',
-    greenLight: 'rgba(16,185,129,0.15)',
-    red:        '#ef4444',
-    redLight:   'rgba(239,68,68,0.15)',
-    amber:      '#f59e0b',
-    purple:     '#8b5cf6',
-    teal:       '#14b8a6',
-    gray:       '#6b7a8d',
-    grayLight:  'rgba(107,122,141,0.1)',
+    green:      '#4ade80',
+    greenLight: 'rgba(74,222,128,0.12)',
+    red:        '#f87171',
+    redLight:   'rgba(248,113,113,0.15)',
+    amber:      '#fbbf24',
+    orange:     '#f97316',
+    purple:     '#a855f7',
+    purpleLight:'rgba(168,85,247,0.15)',
+    teal:       '#2dd4bf',
+    gray:       'rgba(255,255,255,0.35)',
+    grayLight:  'rgba(255,255,255,0.05)',
   };
 
   const BASE_OPTIONS = {
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
-      legend: { labels: { font: { size: 11 }, color: '#6b7a8d', boxWidth: 12 } },
+      legend: {
+        labels: {
+          font: { size: 11 },
+          color: 'rgba(255,255,255,0.45)',
+          boxWidth: 10,
+          usePointStyle: true,
+          pointStyle: 'circle',
+        }
+      },
       tooltip: {
+        backgroundColor: 'rgba(13,17,23,0.95)',
+        borderColor: 'rgba(255,255,255,0.1)',
+        borderWidth: 1,
+        titleColor: '#e2e8f0',
+        bodyColor: 'rgba(255,255,255,0.65)',
         callbacks: {
           label: ctx => {
             const v = ctx.parsed.y ?? ctx.parsed;
@@ -39,14 +58,19 @@ const Charts = (() => {
       }
     },
     scales: {
-      x: { ticks: { color: '#8fa3b3', font: { size: 10 } }, grid: { color: '#e9edf3' } },
+      x: {
+        ticks: { color: 'rgba(255,255,255,0.3)', font: { size: 10 } },
+        grid:  { color: 'rgba(255,255,255,0.05)' },
+        border:{ color: 'rgba(255,255,255,0.08)' },
+      },
       y: {
         ticks: {
-          color: '#8fa3b3',
+          color: 'rgba(255,255,255,0.3)',
           font: { size: 10 },
           callback: v => '$' + (v >= 1e6 ? (v/1e6).toFixed(1)+'M' : v >= 1e3 ? (v/1e3).toFixed(0)+'k' : v)
         },
-        grid: { color: '#e9edf3' }
+        grid:  { color: 'rgba(255,255,255,0.05)' },
+        border:{ color: 'rgba(255,255,255,0.08)' },
       }
     }
   };
@@ -64,27 +88,48 @@ const Charts = (() => {
   }
 
   // ── Chart 1: Portfolio Value Over Time ─────────────────────────────────────
-  function renderPortfolioValue(historicalData, projection, targetAmount) {
+  function renderPortfolioValue(historicalData, projection, targetAmount, retirementYear) {
     destroyIfExists('portfolio-value');
     const ctx = document.getElementById('chart-portfolio-value');
     if (!ctx) return;
 
-    const histLabels = historicalData.map(d => d.year);
-    const histValues = historicalData.map(d => d.portfolioValue);
+    const histLabels  = historicalData.map(d => d.year);
+    const projLabels  = projection.map(d => d.year);
+    const allLabels   = [...new Set([...histLabels, ...projLabels])].sort();
+    const splitIdx    = projection.findIndex(d => d.phase === 'retirement');
 
-    const projStart = historicalData.length > 0
-      ? historicalData[historicalData.length - 1].year
-      : (projection[0]?.year ?? new Date().getFullYear());
-
-    const projData = projection.map(d => d.value);
-    const projLabels = projection.map(d => d.year);
-    const splitIdx = projection.findIndex(d => d.phase === 'retirement');
-
-    const accData = projection.slice(0, splitIdx === -1 ? projection.length : splitIdx + 1).map(d => d.value);
-    const retData = new Array(splitIdx === -1 ? 0 : splitIdx).fill(null)
-      .concat(projection.slice(splitIdx === -1 ? projection.length : splitIdx).map(d => d.value));
-
-    const allLabels = [...new Set([...histLabels, ...projLabels])].sort();
+    // Retirement-year vertical line + target label plugin (closure over local vars)
+    const retLinePlugin = {
+      id: 'retirementLine',
+      afterDraw(chart) {
+        if (!retirementYear) return;
+        const xScale = chart.scales.x;
+        const yScale = chart.scales.y;
+        const retIdx = chart.data.labels.indexOf(retirementYear);
+        if (retIdx < 0) return;
+        const x = xScale.getPixelForIndex(retIdx);
+        const c = chart.ctx;
+        c.save();
+        c.strokeStyle = 'rgba(168,85,247,0.5)';
+        c.lineWidth   = 1.5;
+        c.setLineDash([4, 4]);
+        c.beginPath();
+        c.moveTo(x, yScale.top);
+        c.lineTo(x, yScale.bottom);
+        c.stroke();
+        c.setLineDash([]);
+        if (targetAmount) {
+          const rawY  = yScale.getPixelForValue(targetAmount);
+          const labelY = Math.max(yScale.top + 18, Math.min(yScale.bottom - 8, rawY - 6));
+          const label  = fmt(targetAmount) + ' Target Nest Egg';
+          c.font      = '600 10px -apple-system,sans-serif';
+          c.fillStyle = '#c084fc';
+          c.textAlign = 'left';
+          c.fillText(label, x + 5, labelY);
+        }
+        c.restore();
+      }
+    };
 
     instances['portfolio-value'] = new Chart(ctx, {
       type: 'line',
@@ -97,12 +142,12 @@ const Charts = (() => {
               const h = historicalData.find(d => d.year === y);
               return h ? h.portfolioValue : null;
             }),
-            borderColor: COLORS.blue,
-            backgroundColor: COLORS.blueLight,
+            borderColor: COLORS.white,
+            backgroundColor: 'rgba(255,255,255,0.06)',
             fill: true,
             tension: 0.3,
-            pointRadius: 2,
-            borderWidth: 2,
+            pointRadius: 0,
+            borderWidth: 2.5,
           },
           {
             label: 'Projected (Accumulation)',
@@ -110,11 +155,12 @@ const Charts = (() => {
               const p = projection.find(d => d.year === y && d.phase === 'accumulation');
               return p ? p.value : null;
             }),
-            borderColor: COLORS.green,
-            borderDash: [5, 3],
+            borderColor: COLORS.cyan,
+            borderDash: [4, 4],
+            backgroundColor: COLORS.cyanLight,
             fill: false,
             tension: 0.3,
-            pointRadius: 2,
+            pointRadius: 0,
             borderWidth: 2,
           },
           {
@@ -123,26 +169,27 @@ const Charts = (() => {
               const p = projection.find(d => d.year === y && d.phase === 'retirement');
               return p ? p.value : null;
             }),
-            borderColor: COLORS.amber,
-            borderDash: [5, 3],
+            borderColor: COLORS.orange,
+            borderDash: [4, 4],
             fill: false,
             tension: 0.3,
-            pointRadius: 2,
+            pointRadius: 0,
             borderWidth: 2,
           },
           ...(targetAmount ? [{
             label: 'Target Nest Egg',
             data: allLabels.map(() => targetAmount),
-            borderColor: COLORS.purple,
-            borderDash: [4, 4],
-            borderWidth: 1.5,
+            borderColor: 'rgba(168,85,247,0.4)',
+            borderDash: [3, 3],
+            borderWidth: 1,
             pointRadius: 0,
             fill: false,
             tension: 0,
           }] : []),
         ]
       },
-      options: { ...BASE_OPTIONS }
+      options: { ...BASE_OPTIONS },
+      plugins: [retLinePlugin],
     });
   }
 
@@ -263,11 +310,19 @@ const Charts = (() => {
           <span class="value">${fmt(percentiles.p10[percentiles.p10.length - 1]?.value)}</span>
         </div>
       `;
-      // Update summary in sidebar
-      const summaryEl = document.getElementById('summary-success');
-      if (summaryEl) {
-        summaryEl.textContent = successRate + '%';
-        summaryEl.className = 'value ' + cls;
+      // Update MC ring in sidebar
+      const ringArc  = document.getElementById('mc-ring-arc');
+      const ringPct  = document.getElementById('summary-success');
+      const ringColor = successRate >= 80 ? '#22c55e' : successRate >= 60 ? '#fbbf24' : '#f87171';
+      const circumference = 201; // 2π×32
+      if (ringArc) {
+        ringArc.style.strokeDashoffset = circumference * (1 - successRate / 100);
+        ringArc.style.stroke = ringColor;
+        ringArc.style.filter = `drop-shadow(0 0 5px ${ringColor}99)`;
+      }
+      if (ringPct) {
+        ringPct.textContent = successRate + '%';
+        ringPct.style.color = ringColor;
       }
     }
 

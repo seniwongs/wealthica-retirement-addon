@@ -263,7 +263,7 @@ if (typeof Addon === 'undefined' || !_inWealthicaFrame) {
     }
 
     // Render each chart
-    Charts.renderPortfolioValue(historicalData, projection, p.targetAmount);
+    Charts.renderPortfolioValue(historicalData, projection, p.targetAmount, retirementYear);
     Charts.renderContributions(historicalData);
     Charts.renderRunway(projection, retirementYear);
     Charts.renderMonteCarlo(mcResult);
