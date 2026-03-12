@@ -473,16 +473,12 @@ body {
 .mc-stat .value.bad  { color: #f87171; }
 
 /* ── Data Tooltips ───────────────────────────────────────────────────────────── */
-[data-tooltip] {
-  position: relative;
-  cursor: help;
-}
-[data-tooltip]::after {
-  content: attr(data-tooltip);
-  position: absolute;
-  bottom: calc(100% + 8px);
-  left: 50%;
-  transform: translateX(-50%);
+[data-tooltip] { cursor: help; }
+
+#tip {
+  position: fixed;
+  z-index: 9999;
+  pointer-events: none;
   background: #1e293b;
   color: #e2e8f0;
   font-size: 11px;
@@ -490,29 +486,13 @@ body {
   line-height: 1.5;
   padding: 7px 11px;
   border-radius: 7px;
-  border: 1px solid rgba(255,255,255,0.1);
-  width: 210px;
+  border: 1px solid rgba(255,255,255,0.12);
+  box-shadow: 0 4px 14px rgba(0,0,0,0.35);
   white-space: normal;
   text-align: center;
   text-transform: none;
   letter-spacing: 0;
-  pointer-events: none;
   opacity: 0;
   transition: opacity 0.15s ease;
-  z-index: 500;
 }
-[data-tooltip]::before {
-  content: '';
-  position: absolute;
-  bottom: calc(100% + 2px);
-  left: 50%;
-  transform: translateX(-50%);
-  border: 5px solid transparent;
-  border-top-color: #1e293b;
-  pointer-events: none;
-  opacity: 0;
-  transition: opacity 0.15s ease;
-  z-index: 500;
-}
-[data-tooltip]:hover::after,
-[data-tooltip]:hover::before { opacity: 1; }
+#tip.visible { opacity: 1; }

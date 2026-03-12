@@ -395,9 +395,42 @@ if (typeof Addon === 'undefined' || !_inWealthicaFrame) {
     initTheme();
     initControls();
     initTabs();
+    initTooltips();
     syncControlsToState();
     document.getElementById('inflation-toggle')?.addEventListener('change', () => renderAll());
   });
+
+  function initTooltips() {
+    const tip = document.createElement('div');
+    tip.id = 'tip';
+    document.body.appendChild(tip);
+
+    document.addEventListener('mouseover', e => {
+      const el = e.target.closest('[data-tooltip]');
+      if (!el) return;
+      tip.textContent = el.dataset.tooltip;
+      tip.style.width = '210px';
+      tip.classList.add('visible');
+
+      const rect = el.getBoundingClientRect();
+      let left = rect.left + rect.width / 2 - 105; // 105 = half of 210
+      left = Math.max(8, Math.min(left, window.innerWidth - 218));
+      tip.style.left = left + 'px';
+
+      // Show above element; fall back to below if too close to top
+      if (rect.top > 70) {
+        tip.style.top  = '';
+        tip.style.bottom = (window.innerHeight - rect.top + 8) + 'px';
+      } else {
+        tip.style.bottom = '';
+        tip.style.top = (rect.bottom + 8) + 'px';
+      }
+    });
+
+    document.addEventListener('mouseout', e => {
+      if (e.target.closest('[data-tooltip]')) tip.classList.remove('visible');
+    });
+  }
 
   function initTheme() {
     const root = document.documentElement;
