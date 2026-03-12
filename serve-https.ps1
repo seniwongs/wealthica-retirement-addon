@@ -95,8 +95,21 @@ try {
         $path = $req.Url.LocalPath
         if ($path -eq "/" -or $path -eq "") { $path = "/index.html" }
 
-        # Add CORS headers so Wealthica iframe can load resources
-        $res.Headers.Add("Access-Control-Allow-Origin", "*")
+        # ── Private Network Access + CORS headers (required for public→localhost iframes) ──
+        $res.Headers.Add("Access-Control-Allow-Origin",          "*")
+        $res.Headers.Add("Access-Control-Allow-Private-Network", "true")
+        $res.Headers.Add("Access-Control-Allow-Methods",         "GET, OPTIONS")
+        $res.Headers.Add("Access-Control-Allow-Headers",         "*")
+
+        # Browser sends OPTIONS preflight before allowing public→private connection.
+        # Respond immediately with 200 so the actual request is unblocked.
+        if ($req.HttpMethod -eq "OPTIONS") {
+            $res.StatusCode      = 200
+            $res.ContentLength64 = 0
+            $res.OutputStream.Close()
+            Write-Host "  OPT  $path" -ForegroundColor DarkCyan
+            continue
+        }
 
         $filePath = Join-Path $Root ($path.TrimStart("/").Replace("/", "\"))
 
