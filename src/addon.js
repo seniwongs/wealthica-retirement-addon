@@ -83,9 +83,10 @@ if (typeof Addon === 'undefined' || !_inWealthicaFrame) {
 
   addon.on('init', function (options) {
     state.wealthicaOptions = options;
-    // Restore saved params if any
+    // Restore saved params if any, then clamp to valid ranges
     if (options.data && options.data.params) {
       Object.assign(state.params, options.data.params);
+      clampParams(state.params);
       syncControlsToState();
     }
     fetchAllData(options);
@@ -181,72 +182,40 @@ if (typeof Addon === 'undefined' || !_inWealthicaFrame) {
   }
 
   // ── Controls Wiring ──────────────────────────────────────────────────────────
+  // Each def maps a range slider (id) + number input (valId) to a state key.
+  // stateValue()  → what to store in state.params
+  // displayValue() → what to show in the number input / slider
   const controlDefs = [
-    {
-      id: 'current-age',
-      stateKey: 'currentAge',
-      displayId: 'current-age-val',
-      transform: v => parseInt(v),
-      format: v => v,
-    },
-    {
-      id: 'retirement-age',
-      stateKey: 'retirementAge',
-      displayId: 'retirement-age-val',
-      transform: v => parseInt(v),
-      format: v => v,
-    },
-    {
-      id: 'target-amount',
-      stateKey: 'targetAmount',
-      displayId: 'target-amount-val',
-      transform: v => parseInt(v),
-      format: v => parseInt(v).toLocaleString(),
-    },
-    {
-      id: 'return-rate',
-      stateKey: 'annualReturnRate',
-      displayId: 'return-rate-val',
-      transform: v => parseFloat(v) / 100,
-      format: v => parseFloat(v),
-    },
-    {
-      id: 'extra-income',
-      stateKey: 'extraMonthlyIncome',
-      displayId: 'extra-income-val',
-      transform: v => parseInt(v),
-      format: v => parseInt(v).toLocaleString(),
-    },
-    {
-      id: 'expenses',
-      stateKey: 'monthlyExpenses',
-      displayId: 'expenses-val',
-      transform: v => parseInt(v),
-      format: v => parseInt(v).toLocaleString(),
-    },
-    {
-      id: 'life-expectancy',
-      stateKey: 'lifeExpectancy',
-      displayId: 'life-expectancy-val',
-      transform: v => parseInt(v),
-      format: v => v,
-    },
+    { id: 'current-age',       valId: 'current-age-val',       stateKey: 'currentAge',        stateValue: v => parseInt(v),        displayValue: p => p.currentAge,              min: 20,    max: 70      },
+    { id: 'retirement-age',    valId: 'retirement-age-val',    stateKey: 'retirementAge',     stateValue: v => parseInt(v),        displayValue: p => p.retirementAge,           min: 50,    max: 75      },
+    { id: 'target-amount',     valId: 'target-amount-val',     stateKey: 'targetAmount',      stateValue: v => parseInt(v),        displayValue: p => p.targetAmount,            min: 250000, max: 5000000 },
+    { id: 'return-rate',       valId: 'return-rate-val',       stateKey: 'annualReturnRate',  stateValue: v => parseFloat(v)/100,  displayValue: p => p.annualReturnRate * 100,  min: 1,     max: 12      },
+    { id: 'extra-income',      valId: 'extra-income-val',      stateKey: 'extraMonthlyIncome',stateValue: v => parseInt(v),        displayValue: p => p.extraMonthlyIncome,      min: 0,     max: 5000    },
+    { id: 'expenses',          valId: 'expenses-val',          stateKey: 'monthlyExpenses',   stateValue: v => parseInt(v),        displayValue: p => p.monthlyExpenses,         min: 500,   max: 15000   },
+    { id: 'life-expectancy',   valId: 'life-expectancy-val',   stateKey: 'lifeExpectancy',    stateValue: v => parseInt(v),        displayValue: p => p.lifeExpectancy,          min: 75,    max: 100     },
   ];
 
+  // Clamp saved params to valid ranges to prevent stale/invalid stored values.
+  function clampParams(p) {
+    controlDefs.forEach(def => {
+      if (def.stateKey === 'annualReturnRate') {
+        p.annualReturnRate = Math.min(0.12, Math.max(0.01, p.annualReturnRate || 0.06));
+      } else if (p[def.stateKey] !== undefined) {
+        p[def.stateKey] = Math.min(def.max, Math.max(def.min, p[def.stateKey]));
+      }
+    });
+    return p;
+  }
+
+  // Push state.params into both the range slider and the number input.
   function syncControlsToState() {
     controlDefs.forEach(def => {
-      const el = document.getElementById(def.id);
-      const display = document.getElementById(def.displayId);
-      if (!el) return;
-
-      // Set slider value from state (reverse transform for display)
-      if (def.stateKey === 'annualReturnRate') {
-        el.value = state.params.annualReturnRate * 100;
-        if (display) display.textContent = state.params.annualReturnRate * 100;
-      } else {
-        el.value = state.params[def.stateKey];
-        if (display) display.textContent = def.format(state.params[def.stateKey]);
-      }
+      const slider = document.getElementById(def.id);
+      const numInput = document.getElementById(def.valId);
+      if (!slider) return;
+      const v = def.displayValue(state.params);
+      slider.value   = v;
+      if (numInput) numInput.value = v;
     });
   }
 
@@ -255,27 +224,33 @@ if (typeof Addon === 'undefined' || !_inWealthicaFrame) {
     clearTimeout(debounceTimer);
     debounceTimer = setTimeout(() => {
       renderAll();
-      // Persist params
       addon.saveData({ params: state.params });
     }, 400);
   }
 
   function initControls() {
     controlDefs.forEach(def => {
-      const el = document.getElementById(def.id);
-      const display = document.getElementById(def.displayId);
-      if (!el) return;
+      const slider   = document.getElementById(def.id);
+      const numInput = document.getElementById(def.valId);
+      if (!slider) return;
 
-      el.addEventListener('input', () => {
-        state.params[def.stateKey] = def.transform(el.value);
-        if (display) {
-          const rawVal = def.stateKey === 'annualReturnRate'
-            ? parseFloat(el.value)
-            : def.transform(el.value);
-          display.textContent = def.format(rawVal);
-        }
+      // Range slider moved → update number input + state
+      slider.addEventListener('input', () => {
+        state.params[def.stateKey] = def.stateValue(slider.value);
+        if (numInput) numInput.value = def.displayValue(state.params);
         debounceRender();
       });
+
+      // Number input changed → update range slider + state
+      if (numInput) {
+        numInput.addEventListener('change', () => {
+          const clamped = Math.min(def.max, Math.max(def.min, parseFloat(numInput.value) || def.min));
+          numInput.value = clamped;
+          slider.value   = clamped;
+          state.params[def.stateKey] = def.stateValue(clamped);
+          debounceRender();
+        });
+      }
     });
   }
 

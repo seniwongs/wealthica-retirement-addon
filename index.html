@@ -14,37 +14,66 @@
 
     <!-- ── Top Controls Bar ── -->
     <div id="controls-panel">
-      <h3>Assumptions</h3>
       <div class="controls-row">
+
         <div class="control-group">
-          <label>Current Age: <strong id="current-age-val">40</strong></label>
-          <input type="range" id="current-age" min="20" max="70" value="40" step="1" />
+          <label for="current-age">Current Age</label>
+          <div class="control-track">
+            <input type="range"   id="current-age"       min="20"    max="70"      value="40"       step="1" />
+            <input type="number"  id="current-age-val"   min="20"    max="70"      value="40"       step="1" />
+          </div>
         </div>
+
         <div class="control-group">
-          <label>Retire Age: <strong id="retirement-age-val">65</strong></label>
-          <input type="range" id="retirement-age" min="50" max="75" value="65" step="1" />
+          <label for="retirement-age">Retire Age</label>
+          <div class="control-track">
+            <input type="range"   id="retirement-age"    min="50"    max="75"      value="65"       step="1" />
+            <input type="number"  id="retirement-age-val" min="50"   max="75"      value="65"       step="1" />
+          </div>
         </div>
+
         <div class="control-group">
-          <label>Target: $<strong id="target-amount-val">1,000,000</strong></label>
-          <input type="range" id="target-amount" min="250000" max="5000000" value="1000000" step="50000" />
+          <label for="target-amount">Target Nest Egg ($)</label>
+          <div class="control-track">
+            <input type="range"   id="target-amount"     min="250000" max="5000000" value="1000000" step="50000" />
+            <input type="number"  id="target-amount-val" min="250000" max="5000000" value="1000000" step="50000" />
+          </div>
         </div>
+
         <div class="control-group">
-          <label>Return: <strong id="return-rate-val">6</strong>%/yr</label>
-          <input type="range" id="return-rate" min="1" max="12" value="6" step="0.5" />
+          <label for="return-rate">Expected Return (%/yr)</label>
+          <div class="control-track">
+            <input type="range"   id="return-rate"       min="1"     max="12"      value="6"        step="0.5" />
+            <input type="number"  id="return-rate-val"   min="1"     max="12"      value="6"        step="0.5" />
+          </div>
         </div>
+
         <div class="control-group">
-          <label>Extra Income: $<strong id="extra-income-val">0</strong>/mo</label>
-          <input type="range" id="extra-income" min="0" max="5000" value="0" step="100" />
+          <label for="extra-income">Extra Income ($/mo)</label>
+          <div class="control-track">
+            <input type="range"   id="extra-income"      min="0"     max="5000"    value="0"        step="100" />
+            <input type="number"  id="extra-income-val"  min="0"     max="5000"    value="0"        step="100" />
+          </div>
         </div>
+
         <div class="control-group">
-          <label>Expenses: $<strong id="expenses-val">3,000</strong>/mo</label>
-          <input type="range" id="expenses" min="500" max="15000" value="3000" step="100" />
+          <label for="expenses">Monthly Expenses ($)</label>
+          <div class="control-track">
+            <input type="range"   id="expenses"          min="500"   max="15000"   value="3000"     step="100" />
+            <input type="number"  id="expenses-val"      min="500"   max="15000"   value="3000"     step="100" />
+          </div>
         </div>
+
         <div class="control-group">
-          <label>Life Exp: <strong id="life-expectancy-val">90</strong></label>
-          <input type="range" id="life-expectancy" min="75" max="100" value="90" step="1" />
+          <label for="life-expectancy">Life Expectancy</label>
+          <div class="control-track">
+            <input type="range"   id="life-expectancy"   min="75"    max="100"     value="90"       step="1" />
+            <input type="number"  id="life-expectancy-val" min="75"  max="100"     value="90"       step="1" />
+          </div>
         </div>
+
       </div>
+
       <div id="controls-summary">
         <div class="summary-item">
           <span class="label">Portfolio</span>
@@ -55,7 +84,7 @@
           <span class="value" id="summary-years">—</span>
         </div>
         <div class="summary-item success-prob">
-          <span class="label">Success</span>
+          <span class="label">MC Success</span>
           <span class="value" id="summary-success">—</span>
         </div>
       </div>
@@ -68,7 +97,6 @@
         <p>Loading your financial data…</p>
       </div>
 
-      <!-- Tabs -->
       <div id="tabs">
         <button class="tab active" data-tab="portfolio-value">Portfolio Value</button>
         <button class="tab" data-tab="contributions">Contributions</button>
@@ -79,45 +107,38 @@
         <button class="tab" data-tab="net-worth">Net Worth</button>
       </div>
 
-      <!-- Chart Panels -->
       <div id="chart-panels">
         <div class="chart-panel active" id="panel-portfolio-value">
           <h2>Portfolio Value Over Time</h2>
           <p class="chart-desc">Historical growth and projected trajectory to your retirement goal.</p>
           <div class="chart-wrapper"><canvas id="chart-portfolio-value"></canvas></div>
         </div>
-
         <div class="chart-panel" id="panel-contributions">
           <h2>Contributions vs. Returns</h2>
           <p class="chart-desc">How much of your wealth came from savings versus market gains.</p>
           <div class="chart-wrapper"><canvas id="chart-contributions"></canvas></div>
         </div>
-
         <div class="chart-panel" id="panel-runway">
           <h2>Retirement Runway</h2>
           <p class="chart-desc">Projected portfolio balance from retirement to end-of-life.</p>
           <div class="chart-wrapper"><canvas id="chart-runway"></canvas></div>
         </div>
-
         <div class="chart-panel" id="panel-monte-carlo">
           <h2>Monte Carlo Simulation</h2>
           <p class="chart-desc">Probability of success across 500 randomized market scenarios.</p>
           <div id="mc-stats" class="mc-stats"></div>
           <div class="chart-wrapper"><canvas id="chart-monte-carlo"></canvas></div>
         </div>
-
         <div class="chart-panel" id="panel-income-sources">
           <h2>Retirement Income Sources</h2>
           <p class="chart-desc">Year-by-year income: portfolio withdrawals, CPP, OAS, and extra income.</p>
           <div class="chart-wrapper"><canvas id="chart-income-sources"></canvas></div>
         </div>
-
         <div class="chart-panel" id="panel-withdrawal-rate">
           <h2>Annual Withdrawal Rate</h2>
           <p class="chart-desc">Your projected withdrawal rate vs. the 4% safe withdrawal benchmark.</p>
           <div class="chart-wrapper"><canvas id="chart-withdrawal-rate"></canvas></div>
         </div>
-
         <div class="chart-panel" id="panel-net-worth">
           <h2>Net Worth Over Time</h2>
           <p class="chart-desc">Total net worth: investments minus liabilities over time.</p>
