@@ -191,7 +191,7 @@ if (typeof Addon === 'undefined' || !_inWealthicaFrame) {
     setStatEl('stat-remaining',     lastPoint ? lastPoint.value : 0);
 
     // Render each chart
-    Charts.renderPortfolioValue(historicalData, projection);
+    Charts.renderPortfolioValue(historicalData, projection, p.targetAmount);
     Charts.renderContributions(historicalData);
     Charts.renderRunway(projection, retirementYear);
     Charts.renderMonteCarlo(mcResult);

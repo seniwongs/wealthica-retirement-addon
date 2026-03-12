@@ -64,7 +64,7 @@ const Charts = (() => {
   }
 
   // ── Chart 1: Portfolio Value Over Time ─────────────────────────────────────
-  function renderPortfolioValue(historicalData, projection) {
+  function renderPortfolioValue(historicalData, projection, targetAmount) {
     destroyIfExists('portfolio-value');
     const ctx = document.getElementById('chart-portfolio-value');
     if (!ctx) return;
@@ -129,7 +129,17 @@ const Charts = (() => {
             tension: 0.3,
             pointRadius: 2,
             borderWidth: 2,
-          }
+          },
+          ...(targetAmount ? [{
+            label: 'Target Nest Egg',
+            data: allLabels.map(() => targetAmount),
+            borderColor: COLORS.purple,
+            borderDash: [4, 4],
+            borderWidth: 1.5,
+            pointRadius: 0,
+            fill: false,
+            tension: 0,
+          }] : []),
         ]
       },
       options: { ...BASE_OPTIONS }
