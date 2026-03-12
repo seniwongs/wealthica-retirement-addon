@@ -4,56 +4,60 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Retirement Planner</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📈</text></svg>" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/wealthica.js@0.3.0/dist/addon.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@wealthica/wealthica.js/dist/addon.min.js"></script>
   <link rel="stylesheet" href="src/styles.css" />
 </head>
 <body>
   <div id="app">
-    <!-- Controls Panel -->
+
+    <!-- ── Top Controls Bar ── -->
     <div id="controls-panel">
-      <h3>Retirement Assumptions</h3>
-      <div class="control-group">
-        <label>Retirement Age: <span id="retirement-age-val">65</span></label>
-        <input type="range" id="retirement-age" min="50" max="75" value="65" step="1" />
-      </div>
-      <div class="control-group">
-        <label>Target Nest Egg: $<span id="target-amount-val">1,000,000</span></label>
-        <input type="range" id="target-amount" min="250000" max="5000000" value="1000000" step="50000" />
-      </div>
-      <div class="control-group">
-        <label>Expected Return: <span id="return-rate-val">6</span>%/yr</label>
-        <input type="range" id="return-rate" min="1" max="12" value="6" step="0.5" />
-      </div>
-      <div class="control-group">
-        <label>Extra Monthly Income: $<span id="extra-income-val">0</span></label>
-        <input type="range" id="extra-income" min="0" max="5000" value="0" step="100" />
-      </div>
-      <div class="control-group">
-        <label>Monthly Expenses: $<span id="expenses-val">3,000</span></label>
-        <input type="range" id="expenses" min="500" max="15000" value="3000" step="100" />
-      </div>
-      <div class="control-group">
-        <label>Life Expectancy: <span id="life-expectancy-val">90</span></label>
-        <input type="range" id="life-expectancy" min="75" max="100" value="90" step="1" />
+      <h3>Assumptions</h3>
+      <div class="controls-row">
+        <div class="control-group">
+          <label>Retire Age: <strong id="retirement-age-val">65</strong></label>
+          <input type="range" id="retirement-age" min="50" max="75" value="65" step="1" />
+        </div>
+        <div class="control-group">
+          <label>Target: $<strong id="target-amount-val">1,000,000</strong></label>
+          <input type="range" id="target-amount" min="250000" max="5000000" value="1000000" step="50000" />
+        </div>
+        <div class="control-group">
+          <label>Return: <strong id="return-rate-val">6</strong>%/yr</label>
+          <input type="range" id="return-rate" min="1" max="12" value="6" step="0.5" />
+        </div>
+        <div class="control-group">
+          <label>Extra Income: $<strong id="extra-income-val">0</strong>/mo</label>
+          <input type="range" id="extra-income" min="0" max="5000" value="0" step="100" />
+        </div>
+        <div class="control-group">
+          <label>Expenses: $<strong id="expenses-val">3,000</strong>/mo</label>
+          <input type="range" id="expenses" min="500" max="15000" value="3000" step="100" />
+        </div>
+        <div class="control-group">
+          <label>Life Exp: <strong id="life-expectancy-val">90</strong></label>
+          <input type="range" id="life-expectancy" min="75" max="100" value="90" step="1" />
+        </div>
       </div>
       <div id="controls-summary">
         <div class="summary-item">
-          <span class="label">Current Portfolio</span>
+          <span class="label">Portfolio</span>
           <span class="value" id="summary-portfolio">—</span>
         </div>
         <div class="summary-item">
-          <span class="label">Years to Retirement</span>
+          <span class="label">Yrs to Retire</span>
           <span class="value" id="summary-years">—</span>
         </div>
         <div class="summary-item success-prob">
-          <span class="label">Monte Carlo Success</span>
+          <span class="label">Success</span>
           <span class="value" id="summary-success">—</span>
         </div>
       </div>
     </div>
 
-    <!-- Main Content -->
+    <!-- ── Main Content ── -->
     <div id="main-content">
       <div id="loading" class="loading-overlay">
         <div class="spinner"></div>
@@ -81,26 +85,26 @@
 
         <div class="chart-panel" id="panel-contributions">
           <h2>Contributions vs. Returns</h2>
-          <p class="chart-desc">How much of your wealth came from your savings versus market gains.</p>
+          <p class="chart-desc">How much of your wealth came from savings versus market gains.</p>
           <div class="chart-wrapper"><canvas id="chart-contributions"></canvas></div>
         </div>
 
         <div class="chart-panel" id="panel-runway">
           <h2>Retirement Runway</h2>
-          <p class="chart-desc">Will your portfolio last through retirement? Shows projected balance from retirement to end-of-life.</p>
+          <p class="chart-desc">Projected portfolio balance from retirement to end-of-life.</p>
           <div class="chart-wrapper"><canvas id="chart-runway"></canvas></div>
         </div>
 
         <div class="chart-panel" id="panel-monte-carlo">
           <h2>Monte Carlo Simulation</h2>
-          <p class="chart-desc">Probability of plan success across 1,000 market scenarios.</p>
-          <div class="chart-wrapper"><canvas id="chart-monte-carlo"></canvas></div>
+          <p class="chart-desc">Probability of success across 500 randomized market scenarios.</p>
           <div id="mc-stats" class="mc-stats"></div>
+          <div class="chart-wrapper"><canvas id="chart-monte-carlo"></canvas></div>
         </div>
 
         <div class="chart-panel" id="panel-income-sources">
           <h2>Retirement Income Sources</h2>
-          <p class="chart-desc">Year-by-year income breakdown: portfolio withdrawals, CPP/OAS, and additional income.</p>
+          <p class="chart-desc">Year-by-year income: portfolio withdrawals, CPP, OAS, and extra income.</p>
           <div class="chart-wrapper"><canvas id="chart-income-sources"></canvas></div>
         </div>
 
@@ -112,7 +116,7 @@
 
         <div class="chart-panel" id="panel-net-worth">
           <h2>Net Worth Over Time</h2>
-          <p class="chart-desc">Total net worth including investments, registered accounts, and liabilities.</p>
+          <p class="chart-desc">Total net worth: investments minus liabilities over time.</p>
           <div class="chart-wrapper"><canvas id="chart-net-worth"></canvas></div>
         </div>
       </div>
