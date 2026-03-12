@@ -63,7 +63,8 @@ body {
   min-width: 0;
 }
 
-.control-track input[type="number"] {
+.control-track input[type="number"],
+.control-track input[type="text"] {
   width: 64px;
   min-width: 64px;
   flex-shrink: 0;
@@ -79,11 +80,14 @@ body {
   -moz-appearance: textfield;
 }
 .control-track input[type="number"]::-webkit-inner-spin-button,
-.control-track input[type="number"]::-webkit-outer-spin-button {
+.control-track input[type="number"]::-webkit-outer-spin-button,
+.control-track input[type="text"]::-webkit-inner-spin-button,
+.control-track input[type="text"]::-webkit-outer-spin-button {
   opacity: 1;
   cursor: pointer;
 }
-.control-track input[type="number"]:focus {
+.control-track input[type="number"]:focus,
+.control-track input[type="text"]:focus {
   outline: none;
   border-color: #3b82f6;
 }
