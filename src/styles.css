@@ -146,6 +146,18 @@ body {
 
 .success-prob .value { color: #34d399; }
 
+.inflation-toggle {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 10px;
+  color: #7a92a8;
+  cursor: pointer;
+  margin-top: 4px;
+  white-space: nowrap;
+}
+.inflation-toggle input { accent-color: #3b82f6; cursor: pointer; }
+
 /* ── Main Content ─────────────────────────────────────────────────────────── */
 #main-content {
   flex: 1;

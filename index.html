@@ -7,7 +7,7 @@
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📈</text></svg>" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@wealthica/wealthica.js/dist/addon.min.js"></script>
-  <link rel="stylesheet" href="src/styles.css?v=10" />
+  <link rel="stylesheet" href="src/styles.css?v=11" />
 </head>
 <body>
   <div id="app">
@@ -69,6 +69,22 @@
           <select id="life-expectancy"></select>
         </div>
 
+        <div class="control-group">
+          <label for="cpp-monthly">CPP ($/mo)</label>
+          <div class="control-track">
+            <input type="range"  id="cpp-monthly"     min="0" max="1400" value="800" step="50" />
+            <input type="number" id="cpp-monthly-val" min="0" max="1400" value="800" step="50" />
+          </div>
+        </div>
+
+        <div class="control-group">
+          <label for="oas-monthly">OAS ($/mo)</label>
+          <div class="control-track">
+            <input type="range"  id="oas-monthly"     min="0" max="800" value="700" step="25" />
+            <input type="number" id="oas-monthly-val" min="0" max="800" value="700" step="25" />
+          </div>
+        </div>
+
       </div>
 
       <div id="controls-summary">
@@ -84,6 +100,10 @@
           <span class="label">MC Success</span>
           <span class="value" id="summary-success">—</span>
         </div>
+        <label class="inflation-toggle">
+          <input type="checkbox" id="inflation-toggle" />
+          <span>Inflation (2%)</span>
+        </label>
       </div>
     </div>
 
@@ -169,8 +189,8 @@
     </div>
   </div>
 
-  <script src="src/retirement.js?v=10"></script>
-  <script src="src/charts.js?v=10"></script>
-  <script src="src/addon.js?v=10"></script>
+  <script src="src/retirement.js?v=11"></script>
+  <script src="src/charts.js?v=11"></script>
+  <script src="src/addon.js?v=11"></script>
 </body>
 </html>

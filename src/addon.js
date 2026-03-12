@@ -75,6 +75,8 @@ if (typeof Addon === 'undefined' || !_inWealthicaFrame) {
       extraMonthlyIncome: 0,
       monthlyExpenses: 3_000,
       lifeExpectancy: 90,
+      cppMonthly: 800,
+      oasMonthly: 700,
     }
   };
 
@@ -147,6 +149,12 @@ if (typeof Addon === 'undefined' || !_inWealthicaFrame) {
       state.transactions = transactions || [];
       state.liabilities  = liabilities  || [];
       state.user = user;
+      // Auto-fill current age from Wealthica birthday
+      if (user && user.birthday) {
+        const age = Retirement.estimateCurrentAge(user);
+        state.params.currentAge = Math.min(70, Math.max(20, age));
+        syncControlsToState();
+      }
       showLoading(false);
       renderAll();
     }).catch(err => {
@@ -163,6 +171,8 @@ if (typeof Addon === 'undefined' || !_inWealthicaFrame) {
     const totalLiabilities = Retirement.sumLiabilities(state.liabilities);
 
     const p = state.params;
+    const inflationRate = document.getElementById('inflation-toggle')?.checked ? 0.02 : 0;
+
     const calcParams = {
       currentValue: currentPortfolioValue,
       currentYear,
@@ -173,7 +183,10 @@ if (typeof Addon === 'undefined' || !_inWealthicaFrame) {
       monthlyExpenses: p.monthlyExpenses,
       extraMonthlyIncome: p.extraMonthlyIncome,
       targetAmount: p.targetAmount,
+      cppMonthly: p.cppMonthly,
+      oasMonthly: p.oasMonthly,
       returnVolatility: 0.12,
+      inflationRate,
     };
 
     // Update sidebar summary
@@ -186,7 +199,14 @@ if (typeof Addon === 'undefined' || !_inWealthicaFrame) {
     const historicalData = Retirement.buildHistoricalData(
       state.transactions, currentPortfolioValue
     );
-    const projection = Retirement.projectPortfolio(calcParams);
+    const rawProjection = Retirement.projectPortfolio(calcParams);
+    // Apply inflation deflation so charts show values in today's dollars
+    const projection = inflationRate > 0
+      ? rawProjection.map(d => ({
+          ...d,
+          value: Math.round(d.value / Math.pow(1 + inflationRate, d.year - currentYear))
+        }))
+      : rawProjection;
     const retirementYear = currentYear + (p.retirementAge - currentAge);
     const mcResult = Retirement.monteCarlo(calcParams, 500);
     const withdrawalRates = Retirement.calcWithdrawalRates(projection, calcParams);
@@ -235,6 +255,8 @@ if (typeof Addon === 'undefined' || !_inWealthicaFrame) {
     { id: 'extra-income',      valId: 'extra-income-val',      stateKey: 'extraMonthlyIncome',stateValue: v => parseInt(v),        displayValue: p => p.extraMonthlyIncome,      min: 0,     max: 5000    },
     { id: 'expenses',          valId: 'expenses-val',          stateKey: 'monthlyExpenses',   stateValue: v => parseInt(v),        displayValue: p => p.monthlyExpenses,         min: 500,   max: 15000,   formatDisplay: v => Math.round(v).toLocaleString() },
     { id: 'life-expectancy',   stateKey: 'lifeExpectancy',    stateValue: v => parseInt(v),        displayValue: p => p.lifeExpectancy,          min: 75,    max: 100,    type: 'select' },
+    { id: 'cpp-monthly',       valId: 'cpp-monthly-val',       stateKey: 'cppMonthly',        stateValue: v => parseInt(v),        displayValue: p => p.cppMonthly,              min: 0,     max: 1400    },
+    { id: 'oas-monthly',       valId: 'oas-monthly-val',       stateKey: 'oasMonthly',        stateValue: v => parseInt(v),        displayValue: p => p.oasMonthly,              min: 0,     max: 800     },
   ];
 
   // Clamp saved params to valid ranges to prevent stale/invalid stored values.
@@ -344,6 +366,7 @@ if (typeof Addon === 'undefined' || !_inWealthicaFrame) {
     initControls();
     initTabs();
     syncControlsToState();
+    document.getElementById('inflation-toggle')?.addEventListener('change', () => renderAll());
   });
 
 })();
