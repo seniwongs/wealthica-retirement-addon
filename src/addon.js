@@ -207,10 +207,10 @@ if (typeof Addon === 'undefined' || !_inWealthicaFrame) {
   const controlDefs = [
     { id: 'current-age',       valId: 'current-age-val',       stateKey: 'currentAge',        stateValue: v => parseInt(v),        displayValue: p => p.currentAge,              min: 20,    max: 70      },
     { id: 'retirement-age',    valId: 'retirement-age-val',    stateKey: 'retirementAge',     stateValue: v => parseInt(v),        displayValue: p => p.retirementAge,           min: 50,    max: 75      },
-    { id: 'target-amount',     valId: 'target-amount-val',     stateKey: 'targetAmount',      stateValue: v => parseInt(v),        displayValue: p => p.targetAmount,            min: 250000, max: 5000000 },
+    { id: 'target-amount',     valId: 'target-amount-val',     stateKey: 'targetAmount',      stateValue: v => parseInt(v),        displayValue: p => p.targetAmount,            min: 250000, max: 5000000, formatDisplay: v => Math.round(v).toLocaleString() },
     { id: 'return-rate',       valId: 'return-rate-val',       stateKey: 'annualReturnRate',  stateValue: v => parseFloat(v)/100,  displayValue: p => p.annualReturnRate * 100,  min: 1,     max: 12      },
     { id: 'extra-income',      valId: 'extra-income-val',      stateKey: 'extraMonthlyIncome',stateValue: v => parseInt(v),        displayValue: p => p.extraMonthlyIncome,      min: 0,     max: 5000    },
-    { id: 'expenses',          valId: 'expenses-val',          stateKey: 'monthlyExpenses',   stateValue: v => parseInt(v),        displayValue: p => p.monthlyExpenses,         min: 500,   max: 15000   },
+    { id: 'expenses',          valId: 'expenses-val',          stateKey: 'monthlyExpenses',   stateValue: v => parseInt(v),        displayValue: p => p.monthlyExpenses,         min: 500,   max: 15000,   formatDisplay: v => Math.round(v).toLocaleString() },
     { id: 'life-expectancy',   valId: 'life-expectancy-val',   stateKey: 'lifeExpectancy',    stateValue: v => parseInt(v),        displayValue: p => p.lifeExpectancy,          min: 75,    max: 100     },
   ];
 
@@ -234,7 +234,7 @@ if (typeof Addon === 'undefined' || !_inWealthicaFrame) {
       if (!slider) return;
       const v = def.displayValue(state.params);
       slider.value   = v;
-      if (numInput) numInput.value = v;
+      if (numInput) numInput.value = def.formatDisplay ? def.formatDisplay(v) : v;
     });
   }
 
@@ -256,15 +256,17 @@ if (typeof Addon === 'undefined' || !_inWealthicaFrame) {
       // Range slider moved → update number input + state
       slider.addEventListener('input', () => {
         state.params[def.stateKey] = def.stateValue(slider.value);
-        if (numInput) numInput.value = def.displayValue(state.params);
+        const v = def.displayValue(state.params);
+        if (numInput) numInput.value = def.formatDisplay ? def.formatDisplay(v) : v;
         debounceRender();
       });
 
       // Number input changed → update range slider + state
       if (numInput) {
         numInput.addEventListener('change', () => {
-          const clamped = Math.min(def.max, Math.max(def.min, parseFloat(numInput.value) || def.min));
-          numInput.value = clamped;
+          const raw = parseFloat(numInput.value.replace(/,/g, '')) || def.min;
+          const clamped = Math.min(def.max, Math.max(def.min, raw));
+          numInput.value = def.formatDisplay ? def.formatDisplay(clamped) : clamped;
           slider.value   = clamped;
           state.params[def.stateKey] = def.stateValue(clamped);
           debounceRender();
