@@ -102,32 +102,38 @@ const Charts = (() => {
     const retLinePlugin = {
       id: 'retirementLine',
       afterDraw(chart) {
-        if (!retirementYear) return;
-        const xScale = chart.scales.x;
-        const yScale = chart.scales.y;
-        const retIdx = chart.data.labels.indexOf(retirementYear);
-        if (retIdx < 0) return;
-        const x = xScale.getPixelForIndex(retIdx);
-        const c = chart.ctx;
-        c.save();
-        c.strokeStyle = 'rgba(168,85,247,0.5)';
-        c.lineWidth   = 1.5;
-        c.setLineDash([4, 4]);
-        c.beginPath();
-        c.moveTo(x, yScale.top);
-        c.lineTo(x, yScale.bottom);
-        c.stroke();
-        c.setLineDash([]);
-        if (targetAmount) {
-          const rawY  = yScale.getPixelForValue(targetAmount);
-          const labelY = Math.max(yScale.top + 18, Math.min(yScale.bottom - 8, rawY - 6));
-          const label  = fmt(targetAmount) + ' Target Nest Egg';
-          c.font      = '600 10px -apple-system,sans-serif';
-          c.fillStyle = '#c084fc';
-          c.textAlign = 'left';
-          c.fillText(label, x + 5, labelY);
-        }
-        c.restore();
+        try {
+          if (!retirementYear) return;
+          const xScale = chart.scales.x;
+          const yScale = chart.scales.y;
+          if (!xScale || !yScale) return;
+          // Use index-based lookup for CategoryScale (numeric labels)
+          const retIdx = chart.data.labels.indexOf(retirementYear);
+          if (retIdx < 0) return;
+          // getPixelForValue on CategoryScale takes the index
+          const x = xScale.getPixelForValue(retIdx);
+          if (!isFinite(x)) return;
+          const c = chart.ctx;
+          c.save();
+          c.strokeStyle = 'rgba(168,85,247,0.5)';
+          c.lineWidth   = 1.5;
+          c.setLineDash([4, 4]);
+          c.beginPath();
+          c.moveTo(x, yScale.top);
+          c.lineTo(x, yScale.bottom);
+          c.stroke();
+          c.setLineDash([]);
+          if (targetAmount) {
+            const rawY   = yScale.getPixelForValue(targetAmount);
+            const labelY = Math.max(yScale.top + 18, Math.min(yScale.bottom - 8, rawY - 6));
+            const label  = fmt(targetAmount) + ' Target Nest Egg';
+            c.font      = '600 10px -apple-system,sans-serif';
+            c.fillStyle = '#c084fc';
+            c.textAlign = 'left';
+            c.fillText(label, x + 5, labelY);
+          }
+          c.restore();
+        } catch (e) { /* don't let plugin errors break the chart */ }
       }
     };
 
