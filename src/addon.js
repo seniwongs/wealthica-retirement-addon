@@ -82,6 +82,7 @@ if (typeof Addon === 'undefined' || !_inWealthicaFrame) {
   const addon = new Addon();
 
   addon.on('init', function (options) {
+    console.log('[Retirement] init', options);
     state.wealthicaOptions = options;
     // Restore saved params if any, then clamp to valid ranges
     if (options.data && options.data.params) {
@@ -93,42 +94,65 @@ if (typeof Addon === 'undefined' || !_inWealthicaFrame) {
   });
 
   addon.on('update', function (options) {
+    console.log('[Retirement] update', options);
     state.wealthicaOptions = options;
     fetchAllData(options);
   });
 
   addon.on('reload', function () {
+    console.log('[Retirement] reload');
     fetchAllData(state.wealthicaOptions);
   });
 
   // ── Data Fetching ────────────────────────────────────────────────────────────
+  // Wealthica API expects groups/institutions as comma-separated strings.
+  function toApiParam(val) {
+    if (!val) return undefined;
+    return Array.isArray(val) ? val.join(',') : val;
+  }
+
   function fetchAllData(options) {
     showLoading(true);
 
+    // SDK options use fromDate/toDate; API calls also use fromDate/toDate.
+    const groups       = toApiParam(options.groups);
+    const institutions = toApiParam(options.institutions);
+
     const query = {
-      groups: options.groups,
-      institutions: options.institutions,
+      groups,
+      institutions,
+      fromDate: options.fromDate,
+      toDate:   options.toDate,
     };
-    // Transactions: always fetch full history — ignore the dashboard date filter.
-    // Retirement projections need lifetime contribution data, not just the current window.
-    const txQuery = { ...query };
+    // Transactions: no date range so we get full contribution history,
+    // but still respect the group/institution filter.
+    const txQuery = { groups, institutions };
 
     Promise.all([
-      addon.api.getPositions(query).catch(() => []),
-      addon.api.getTransactions(txQuery).catch(() => []),
-      addon.api.getLiabilities(query).catch(() => []),
-      addon.api.getUser().catch(() => null),
+      addon.api.getPositions(query)
+        .catch(err => { console.error('[Retirement] getPositions error:', err); return []; }),
+      addon.api.getTransactions(txQuery)
+        .catch(err => { console.error('[Retirement] getTransactions error:', err); return []; }),
+      addon.api.getLiabilities(query)
+        .catch(err => { console.error('[Retirement] getLiabilities error:', err); return []; }),
+      addon.api.getUser()
+        .catch(err => { console.error('[Retirement] getUser error:', err); return null; }),
     ]).then(([positions, transactions, liabilities, user]) => {
-      state.positions = positions || [];
+      console.log('[Retirement] data received —',
+        'positions:', positions?.length,
+        'transactions:', transactions?.length,
+        'liabilities:', liabilities?.length,
+        'user:', user?.birthday);
+      state.positions    = positions    || [];
       state.transactions = transactions || [];
-      state.liabilities = liabilities || [];
+      state.liabilities  = liabilities  || [];
       state.user = user;
       showLoading(false);
+      setLastUpdated();
       renderAll();
     }).catch(err => {
-      console.error('Wealthica data fetch error:', err);
+      console.error('[Retirement] unexpected fetch error:', err);
       showLoading(false);
-      renderAll(); // render with empty/demo data
     });
   }
 
@@ -294,11 +318,20 @@ if (typeof Addon === 'undefined' || !_inWealthicaFrame) {
     if (el) el.classList.toggle('hidden', !visible);
   }
 
+  function setLastUpdated() {
+    const el = document.getElementById('last-updated');
+    if (el) el.textContent = 'Updated ' + new Date().toLocaleTimeString();
+  }
+
   // ── Bootstrap ─────────────────────────────────────────────────────────────────
   document.addEventListener('DOMContentLoaded', () => {
     initControls();
     initTabs();
     syncControlsToState();
+    document.getElementById('btn-refresh')?.addEventListener('click', () => {
+      console.log('[Retirement] manual refresh');
+      fetchAllData(state.wealthicaOptions);
+    });
   });
 
 })();
