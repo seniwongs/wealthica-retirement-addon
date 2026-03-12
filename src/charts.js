@@ -280,20 +280,22 @@ const Charts = (() => {
           borderWidth: 2.5,
         }]
       },
-      options: (() => { const bo = getBaseOptions(); return { ...bo, plugins: { ...bo.plugins,
-          annotation: depletionYear ? {
-            annotations: {
-              depletion: {
-                type: 'line',
-                xMin: depletionYear.year,
-                xMax: depletionYear.year,
-                borderColor: COLORS.red,
-                borderWidth: 2,
-                label: { content: 'Depletion', enabled: true, color: COLORS.red }
+      options: (() => { const bo = getBaseOptions(); return { ...bo,
+          interaction: { mode: 'index', intersect: false },
+          plugins: { ...bo.plugins,
+            annotation: depletionYear ? {
+              annotations: {
+                depletion: {
+                  type: 'line',
+                  xMin: depletionYear.year,
+                  xMax: depletionYear.year,
+                  borderColor: COLORS.red,
+                  borderWidth: 2,
+                  label: { content: 'Depletion', enabled: true, color: COLORS.red }
+                }
               }
-            }
-          } : {}
-        } }; })()
+            } : {}
+          } }; })()
     });
   }
 
