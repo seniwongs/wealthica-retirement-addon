@@ -392,10 +392,28 @@ if (typeof Addon === 'undefined' || !_inWealthicaFrame) {
 
   // ── Bootstrap ─────────────────────────────────────────────────────────────────
   document.addEventListener('DOMContentLoaded', () => {
+    initTheme();
     initControls();
     initTabs();
     syncControlsToState();
     document.getElementById('inflation-toggle')?.addEventListener('change', () => renderAll());
   });
+
+  function initTheme() {
+    const root = document.documentElement;
+    const btn  = document.getElementById('theme-toggle');
+    if (!btn) return;
+    // Apply saved preference (default: dark)
+    const saved = localStorage.getItem('ret-theme') || 'dark';
+    root.setAttribute('data-theme', saved);
+    btn.textContent = saved === 'dark' ? '☀️ Light' : '🌙 Dark';
+    btn.addEventListener('click', () => {
+      const next = root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+      root.setAttribute('data-theme', next);
+      btn.textContent = next === 'dark' ? '☀️ Light' : '🌙 Dark';
+      localStorage.setItem('ret-theme', next);
+      renderAll(); // re-render charts with new theme colours
+    });
+  }
 
 })();

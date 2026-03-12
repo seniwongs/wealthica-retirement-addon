@@ -27,53 +27,66 @@ const Charts = (() => {
     grayLight:  'rgba(255,255,255,0.05)',
   };
 
-  const BASE_OPTIONS = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      legend: {
-        labels: {
-          font: { size: 11 },
-          color: 'rgba(255,255,255,0.45)',
-          boxWidth: 10,
-          usePointStyle: true,
-          pointStyle: 'circle',
-        }
-      },
-      tooltip: {
-        backgroundColor: 'rgba(13,17,23,0.95)',
-        borderColor: 'rgba(255,255,255,0.1)',
-        borderWidth: 1,
-        titleColor: '#e2e8f0',
-        bodyColor: 'rgba(255,255,255,0.65)',
-        callbacks: {
-          label: ctx => {
-            const v = ctx.parsed.y ?? ctx.parsed;
-            if (typeof v === 'number') {
-              return ` ${ctx.dataset.label}: ${fmt(v)}`;
+  function isLight() {
+    return document.documentElement.getAttribute('data-theme') === 'light';
+  }
+
+  function getBaseOptions() {
+    const light = isLight();
+    const tickColor  = light ? '#94a3b8'               : 'rgba(255,255,255,0.3)';
+    const gridColor  = light ? '#e9edf3'               : 'rgba(255,255,255,0.05)';
+    const borderColor= light ? '#e2e8f0'               : 'rgba(255,255,255,0.08)';
+    const legendColor= light ? '#64748b'               : 'rgba(255,255,255,0.45)';
+    const tooltipBg  = light ? 'rgba(255,255,255,0.98)': 'rgba(13,17,23,0.95)';
+    const tooltipBdr = light ? '#e2e8f0'               : 'rgba(255,255,255,0.1)';
+    const tooltipTitle=light ? '#1e293b'               : '#e2e8f0';
+    const tooltipBody= light ? '#64748b'               : 'rgba(255,255,255,0.65)';
+    return {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          labels: {
+            font: { size: 11 },
+            color: legendColor,
+            boxWidth: 10,
+            usePointStyle: true,
+            pointStyle: 'circle',
+          }
+        },
+        tooltip: {
+          backgroundColor: tooltipBg,
+          borderColor: tooltipBdr,
+          borderWidth: 1,
+          titleColor: tooltipTitle,
+          bodyColor:  tooltipBody,
+          callbacks: {
+            label: ctx => {
+              const v = ctx.parsed.y ?? ctx.parsed;
+              if (typeof v === 'number') return ` ${ctx.dataset.label}: ${fmt(v)}`;
+              return ` ${ctx.dataset.label}: ${v}`;
             }
-            return ` ${ctx.dataset.label}: ${v}`;
           }
         }
-      }
-    },
-    scales: {
-      x: {
-        ticks: { color: 'rgba(255,255,255,0.3)', font: { size: 10 } },
-        grid:  { color: 'rgba(255,255,255,0.05)' },
-        border:{ color: 'rgba(255,255,255,0.08)' },
       },
-      y: {
-        ticks: {
-          color: 'rgba(255,255,255,0.3)',
-          font: { size: 10 },
-          callback: v => '$' + (v >= 1e6 ? (v/1e6).toFixed(1)+'M' : v >= 1e3 ? (v/1e3).toFixed(0)+'k' : v)
+      scales: {
+        x: {
+          ticks: { color: tickColor, font: { size: 10 } },
+          grid:  { color: gridColor },
+          border:{ color: borderColor },
         },
-        grid:  { color: 'rgba(255,255,255,0.05)' },
-        border:{ color: 'rgba(255,255,255,0.08)' },
+        y: {
+          ticks: {
+            color: tickColor,
+            font: { size: 10 },
+            callback: v => '$' + (v >= 1e6 ? (v/1e6).toFixed(1)+'M' : v >= 1e3 ? (v/1e3).toFixed(0)+'k' : v)
+          },
+          grid:  { color: gridColor },
+          border:{ color: borderColor },
+        }
       }
-    }
-  };
+    };
+  }
 
   function fmt(v) {
     if (v === null || v === undefined) return '—';
@@ -137,6 +150,13 @@ const Charts = (() => {
       }
     };
 
+    const light = isLight();
+    const histColor = light ? COLORS.blue   : COLORS.white;
+    const histFill  = light ? 'rgba(59,130,246,0.08)' : 'rgba(255,255,255,0.06)';
+    const accColor  = light ? '#0891b2'     : COLORS.cyan;
+    const retColor  = light ? COLORS.amber  : COLORS.orange;
+    const tgtColor  = light ? 'rgba(124,58,237,0.6)' : 'rgba(168,85,247,0.4)';
+
     instances['portfolio-value'] = new Chart(ctx, {
       type: 'line',
       data: {
@@ -148,8 +168,8 @@ const Charts = (() => {
               const h = historicalData.find(d => d.year === y);
               return h ? h.portfolioValue : null;
             }),
-            borderColor: COLORS.white,
-            backgroundColor: 'rgba(255,255,255,0.06)',
+            borderColor: histColor,
+            backgroundColor: histFill,
             fill: true,
             tension: 0.3,
             pointRadius: 0,
@@ -161,9 +181,8 @@ const Charts = (() => {
               const p = projection.find(d => d.year === y && d.phase === 'accumulation');
               return p ? p.value : null;
             }),
-            borderColor: COLORS.cyan,
+            borderColor: accColor,
             borderDash: [4, 4],
-            backgroundColor: COLORS.cyanLight,
             fill: false,
             tension: 0.3,
             pointRadius: 0,
@@ -175,7 +194,7 @@ const Charts = (() => {
               const p = projection.find(d => d.year === y && d.phase === 'retirement');
               return p ? p.value : null;
             }),
-            borderColor: COLORS.orange,
+            borderColor: retColor,
             borderDash: [4, 4],
             fill: false,
             tension: 0.3,
@@ -185,16 +204,16 @@ const Charts = (() => {
           ...(targetAmount ? [{
             label: 'Target Nest Egg',
             data: allLabels.map(() => targetAmount),
-            borderColor: 'rgba(168,85,247,0.4)',
+            borderColor: tgtColor,
             borderDash: [3, 3],
-            borderWidth: 1,
+            borderWidth: 1.5,
             pointRadius: 0,
             fill: false,
             tension: 0,
           }] : []),
         ]
       },
-      options: { ...BASE_OPTIONS },
+      options: getBaseOptions(),
       plugins: [retLinePlugin],
     });
   }
@@ -228,14 +247,7 @@ const Charts = (() => {
           }
         ]
       },
-      options: {
-        ...BASE_OPTIONS,
-        scales: {
-          ...BASE_OPTIONS.scales,
-          x: { ...BASE_OPTIONS.scales.x, stacked: true },
-          y: { ...BASE_OPTIONS.scales.y, stacked: true },
-        }
-      }
+      options: (() => { const bo = getBaseOptions(); return { ...bo, scales: { ...bo.scales, x: { ...bo.scales.x, stacked: true }, y: { ...bo.scales.y, stacked: true } } }; })()
     });
   }
 
@@ -268,10 +280,7 @@ const Charts = (() => {
           borderWidth: 2.5,
         }]
       },
-      options: {
-        ...BASE_OPTIONS,
-        plugins: {
-          ...BASE_OPTIONS.plugins,
+      options: (() => { const bo = getBaseOptions(); return { ...bo, plugins: { ...bo.plugins,
           annotation: depletionYear ? {
             annotations: {
               depletion: {
@@ -284,8 +293,7 @@ const Charts = (() => {
               }
             }
           } : {}
-        }
-      }
+        } }; })()
     });
   }
 
@@ -379,7 +387,7 @@ const Charts = (() => {
           },
         ]
       },
-      options: { ...BASE_OPTIONS }
+      options: getBaseOptions()
     });
   }
 
@@ -426,14 +434,7 @@ const Charts = (() => {
           }
         ]
       },
-      options: {
-        ...BASE_OPTIONS,
-        scales: {
-          ...BASE_OPTIONS.scales,
-          x: { ...BASE_OPTIONS.scales.x, stacked: true },
-          y: { ...BASE_OPTIONS.scales.y, stacked: true },
-        }
-      }
+      options: (() => { const bo = getBaseOptions(); return { ...bo, scales: { ...bo.scales, x: { ...bo.scales.x, stacked: true }, y: { ...bo.scales.y, stacked: true } } }; })()
     });
   }
 
@@ -490,28 +491,13 @@ const Charts = (() => {
           }
         ]
       },
-      options: {
-        ...BASE_OPTIONS,
-        plugins: {
-          ...BASE_OPTIONS.plugins,
-          tooltip: {
-            callbacks: {
-              label: ctx => ` ${ctx.dataset.label}: ${parseFloat(ctx.parsed.y).toFixed(1)}%`
-            }
-          }
-        },
-        scales: {
-          x: BASE_OPTIONS.scales.x,
-          y: {
-            ...BASE_OPTIONS.scales.y,
-            ticks: {
-              ...BASE_OPTIONS.scales.y.ticks,
-              callback: v => v + '%'
-            },
-            title: { display: true, text: 'Withdrawal Rate (%)', color: '#8fa3b3', font: { size: 11 } }
-          }
-        }
-      },
+      options: (() => {
+        const bo = getBaseOptions();
+        return { ...bo,
+          plugins: { ...bo.plugins, tooltip: { callbacks: { label: ctx => ` ${ctx.dataset.label}: ${parseFloat(ctx.parsed.y).toFixed(1)}%` } } },
+          scales: { x: bo.scales.x, y: { ...bo.scales.y, ticks: { ...bo.scales.y.ticks, callback: v => v + '%' }, title: { display: true, text: 'Withdrawal Rate (%)', color: bo.scales.y.ticks.color, font: { size: 11 } } } }
+        };
+      })(),
       plugins: [portfolioLabelPlugin],
     });
   }
@@ -561,7 +547,7 @@ const Charts = (() => {
           }
         ]
       },
-      options: { ...BASE_OPTIONS }
+      options: getBaseOptions()
     });
   }
 
