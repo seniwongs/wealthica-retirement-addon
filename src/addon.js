@@ -169,6 +169,27 @@ if (typeof Addon === 'undefined' || !_inWealthicaFrame) {
     const withdrawalRates = Retirement.calcWithdrawalRates(projection, calcParams);
     const incomeSources = Retirement.buildIncomeSources(calcParams);
 
+    // ── Stats strip ────────────────────────────────────────────────────────────
+    const lastHistorical = historicalData[historicalData.length - 1];
+    const totalContributed = lastHistorical ? Math.max(0, lastHistorical.contributions) : 0;
+    const investmentGains  = currentPortfolioValue - totalContributed;
+
+    const retirementPoint  = projection.find(d => d.year === retirementYear);
+    const lastPoint        = projection[projection.length - 1];
+
+    function setStatEl(id, value, isGain) {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.textContent = Charts.fmt(value);
+      if (isGain) el.className = 'stat-value' + (value < 0 ? ' negative' : '');
+    }
+
+    setStatEl('stat-portfolio',     currentPortfolioValue);
+    setStatEl('stat-contributed',   totalContributed);
+    setStatEl('stat-gains',         investmentGains, true);
+    setStatEl('stat-at-retirement', retirementPoint ? retirementPoint.value : 0);
+    setStatEl('stat-remaining',     lastPoint ? lastPoint.value : 0);
+
     // Render each chart
     Charts.renderPortfolioValue(historicalData, projection);
     Charts.renderContributions(historicalData);

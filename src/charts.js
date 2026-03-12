@@ -397,6 +397,14 @@ const Charts = (() => {
       },
       options: {
         ...BASE_OPTIONS,
+        plugins: {
+          ...BASE_OPTIONS.plugins,
+          tooltip: {
+            callbacks: {
+              label: ctx => ` ${ctx.dataset.label}: ${parseFloat(ctx.parsed.y).toFixed(1)}%`
+            }
+          }
+        },
         scales: {
           x: BASE_OPTIONS.scales.x,
           y: {
