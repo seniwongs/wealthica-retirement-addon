@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:app.wealthica.com)",
+      "WebFetch(domain:github.com)",
+      "WebSearch",
+      "WebFetch(domain:wealthica.com)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "WebFetch(domain:coffee-monk.github.io)"
+    ]
+  }
+}

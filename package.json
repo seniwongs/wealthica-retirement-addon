@@ -1,0 +1,16 @@
+{
+  "name": "wealthica-retirement-addon",
+  "version": "1.0.0",
+  "description": "Retirement planning charts and projections for Wealthica",
+  "main": "index.html",
+  "scripts": {
+    "start": "npx serve . -p 8080",
+    "dev": "npx live-server --port=8080 --open=index.html"
+  },
+  "keywords": ["wealthica", "retirement", "charts", "financial-planning"],
+  "license": "MIT",
+  "devDependencies": {
+    "serve": "^14.0.0",
+    "live-server": "^1.2.2"
+  }
+}
