@@ -65,6 +65,7 @@ body {
 
 .control-track input[type="number"] {
   width: 64px;
+  min-width: 64px;
   flex-shrink: 0;
   background: #2e3d50;
   border: 1px solid #3d5166;
