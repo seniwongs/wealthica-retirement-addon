@@ -3,6 +3,59 @@
  * Main entry point — Wealthica SDK lifecycle, data fetching, controls wiring.
  */
 
+// Dev-mode stub: use demo mode when either:
+//   1. wealthica.js CDN failed to load (Addon undefined), OR
+//   2. page is NOT inside a Wealthica iframe (window === window.parent)
+//      — the SDK requires a parent frame to postMessage with.
+const _inWealthicaFrame = (function () {
+  try { return window.self !== window.top; } catch (e) { return false; }
+})();
+
+if (typeof Addon === 'undefined' || !_inWealthicaFrame) {
+  console.warn('[RetirementAddon] Running in demo mode (not inside Wealthica iframe)');
+  window.Addon = function () {
+    this._handlers = {};
+    const self = this;
+    this.api = {
+      getPositions:    () => Promise.resolve(DEMO_DATA.positions),
+      getTransactions: () => Promise.resolve(DEMO_DATA.transactions),
+      getLiabilities:  () => Promise.resolve(DEMO_DATA.liabilities),
+      getUser:         () => Promise.resolve(DEMO_DATA.user),
+    };
+    this.on = function (event, fn) { self._handlers[event] = fn; return self; };
+    this.saveData = function () {};
+    this.setLoadingStatus = function () {};
+    setTimeout(() => {
+      if (self._handlers['init']) self._handlers['init']({ groups: null, institutions: null });
+    }, 300);
+  };
+
+  // Demo data — realistic Canadian portfolio snapshot
+  const DEMO_DATA = {
+    user: { birthday: '1984-06-15' },
+    positions: [
+      { name: 'XEQT.TO',  market_value: 145000 },
+      { name: 'VCN.TO',   market_value:  55000 },
+      { name: 'ZAG.TO',   market_value:  38000 },
+      { name: 'CASH',     market_value:  12000 },
+    ],
+    liabilities: [
+      { name: 'Mortgage', market_value: -280000 },
+    ],
+    transactions: (() => {
+      const txs = [];
+      const now = new Date();
+      // ~10 years of monthly $1500 contributions
+      for (let m = 120; m >= 0; m--) {
+        const d = new Date(now);
+        d.setMonth(d.getMonth() - m);
+        txs.push({ date: d.toISOString().slice(0, 10), amount: 1500 });
+      }
+      return txs;
+    })(),
+  };
+}
+
 (function () {
   'use strict';
 
@@ -15,6 +68,7 @@
     wealthicaOptions: {},
     // User-controlled assumption params
     params: {
+      currentAge: 40,
       retirementAge: 65,
       targetAmount: 1_000_000,
       annualReturnRate: 0.06,
@@ -82,7 +136,7 @@
   // ── Render All Charts ────────────────────────────────────────────────────────
   function renderAll() {
     const currentYear = new Date().getFullYear();
-    const currentAge = Retirement.estimateCurrentAge(state.user);
+    const currentAge = state.params.currentAge;
     const currentPortfolioValue = Retirement.sumPortfolio(state.positions);
     const totalLiabilities = Retirement.sumLiabilities(state.liabilities);
 
@@ -128,6 +182,13 @@
 
   // ── Controls Wiring ──────────────────────────────────────────────────────────
   const controlDefs = [
+    {
+      id: 'current-age',
+      stateKey: 'currentAge',
+      displayId: 'current-age-val',
+      transform: v => parseInt(v),
+      format: v => v,
+    },
     {
       id: 'retirement-age',
       stateKey: 'retirementAge',
