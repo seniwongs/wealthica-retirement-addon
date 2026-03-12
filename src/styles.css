@@ -27,7 +27,7 @@ body {
 .controls-row {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px 20px;
+  gap: 10px 32px;
   flex: 1;
 }
 
@@ -52,7 +52,7 @@ body {
 .control-track {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 3px;
 }
 
 .control-group select {
