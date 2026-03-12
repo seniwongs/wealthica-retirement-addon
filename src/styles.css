@@ -471,3 +471,48 @@ body {
 .mc-stat .value.good { color: #4ade80; }
 .mc-stat .value.warn { color: #fbbf24; }
 .mc-stat .value.bad  { color: #f87171; }
+
+/* ── Data Tooltips ───────────────────────────────────────────────────────────── */
+[data-tooltip] {
+  position: relative;
+  cursor: help;
+}
+[data-tooltip]::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: #1e293b;
+  color: #e2e8f0;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.5;
+  padding: 7px 11px;
+  border-radius: 7px;
+  border: 1px solid rgba(255,255,255,0.1);
+  width: 210px;
+  white-space: normal;
+  text-align: center;
+  text-transform: none;
+  letter-spacing: 0;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+  z-index: 500;
+}
+[data-tooltip]::before {
+  content: '';
+  position: absolute;
+  bottom: calc(100% + 2px);
+  left: 50%;
+  transform: translateX(-50%);
+  border: 5px solid transparent;
+  border-top-color: #1e293b;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+  z-index: 500;
+}
+[data-tooltip]:hover::after,
+[data-tooltip]:hover::before { opacity: 1; }

@@ -7,7 +7,7 @@
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📈</text></svg>" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@wealthica/wealthica.js/dist/addon.min.js"></script>
-  <link rel="stylesheet" href="src/styles.css?v=16" />
+  <link rel="stylesheet" href="src/styles.css?v=17" />
 </head>
 <body>
   <div id="app">
@@ -144,31 +144,31 @@
       <!-- ── Key Figures Strip ── -->
       <div id="stats-strip">
         <div class="stat-card">
-          <span class="stat-label">Current Portfolio</span>
+          <span class="stat-label" data-tooltip="Total market value of your investment accounts today">Current Portfolio</span>
           <span class="stat-value" id="stat-portfolio">—</span>
         </div>
         <div class="stat-card">
-          <span class="stat-label">Total Contributed</span>
+          <span class="stat-label" data-tooltip="Cumulative net deposits over time (contributions minus withdrawals)">Total Contributed</span>
           <span class="stat-value" id="stat-contributed">—</span>
         </div>
         <div class="stat-card gain">
-          <span class="stat-label">Investment Gains</span>
+          <span class="stat-label" data-tooltip="Portfolio growth from market returns — value minus total contributions">Investment Gains</span>
           <span class="stat-value" id="stat-gains">—</span>
         </div>
         <div class="stat-card">
-          <span class="stat-label">At Retirement</span>
+          <span class="stat-label" data-tooltip="Projected portfolio value when you reach your retirement age">At Retirement</span>
           <span class="stat-value" id="stat-at-retirement">—</span>
         </div>
         <div class="stat-card">
-          <span class="stat-label">FIRE Number</span>
+          <span class="stat-label" data-tooltip="Portfolio needed to fund net expenses indefinitely at a 4% safe withdrawal rate (expenses minus CPP, OAS &amp; extra income)">FIRE Number</span>
           <span class="stat-value" id="stat-fire">—</span>
         </div>
         <div class="stat-card">
-          <span class="stat-label">Save/mo to Goal</span>
+          <span class="stat-label" data-tooltip="Monthly savings needed to reach your target nest egg by retirement, on top of current portfolio growth">Save/mo to Goal</span>
           <span class="stat-value" id="stat-save-needed">—</span>
         </div>
         <div class="stat-card">
-          <span class="stat-label">Projected Remaining</span>
+          <span class="stat-label" data-tooltip="Estimated portfolio balance remaining at your life expectancy age">Projected Remaining</span>
           <span class="stat-value" id="stat-remaining">—</span>
         </div>
       </div>
@@ -224,8 +224,8 @@
     </div>
   </div>
 
-  <script src="src/retirement.js?v=16"></script>
-  <script src="src/charts.js?v=16"></script>
-  <script src="src/addon.js?v=16"></script>
+  <script src="src/retirement.js?v=17"></script>
+  <script src="src/charts.js?v=17"></script>
+  <script src="src/addon.js?v=17"></script>
 </body>
 </html>

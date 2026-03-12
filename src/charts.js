@@ -45,6 +45,15 @@ const Charts = (() => {
       responsive: true,
       maintainAspectRatio: false,
       interaction: { mode: 'index', intersect: false },
+      elements: {
+        point: {
+          radius: 4,
+          hoverRadius: 7,
+          hitRadius: 8,
+          borderWidth: 2,
+          borderColor: light ? '#f5f6fa' : '#0d1117',
+        }
+      },
       plugins: {
         legend: {
           labels: {
@@ -173,11 +182,6 @@ const Charts = (() => {
             backgroundColor: histFill,
             fill: true,
             tension: 0.3,
-            pointRadius: 4,
-            pointHoverRadius: 7,
-            pointBackgroundColor: histColor,
-            pointBorderColor: light ? '#f5f6fa' : '#0d1117',
-            pointBorderWidth: 2,
             borderWidth: 2.5,
           },
           {
@@ -190,11 +194,6 @@ const Charts = (() => {
             borderDash: [4, 4],
             fill: false,
             tension: 0.3,
-            pointRadius: 4,
-            pointHoverRadius: 7,
-            pointBackgroundColor: accColor,
-            pointBorderColor: light ? '#f5f6fa' : '#0d1117',
-            pointBorderWidth: 2,
             borderWidth: 2,
           },
           {
@@ -207,11 +206,6 @@ const Charts = (() => {
             borderDash: [4, 4],
             fill: false,
             tension: 0.3,
-            pointRadius: 4,
-            pointHoverRadius: 7,
-            pointBackgroundColor: retColor,
-            pointBorderColor: light ? '#f5f6fa' : '#0d1117',
-            pointBorderWidth: 2,
             borderWidth: 2,
           },
           ...(targetAmount ? [{
@@ -289,11 +283,6 @@ const Charts = (() => {
           },
           fill: true,
           tension: 0.3,
-          pointRadius: 4,
-          pointHoverRadius: 7,
-          pointBackgroundColor: COLORS.blue,
-          pointBorderColor: isLight() ? '#f5f6fa' : '#0d1117',
-          pointBorderWidth: 2,
           borderWidth: 2.5,
         }]
       },
@@ -546,9 +535,7 @@ const Charts = (() => {
             borderColor: COLORS.blue,
             backgroundColor: COLORS.blueLight,
             fill: true,
-            tension: 0.3, pointRadius: 4, pointHoverRadius: 7,
-            pointBackgroundColor: COLORS.blue, pointBorderColor: isLight() ? '#f5f6fa' : '#0d1117', pointBorderWidth: 2,
-            borderWidth: 2,
+            tension: 0.3, borderWidth: 2,
           },
           {
             label: 'Liabilities',
@@ -556,9 +543,7 @@ const Charts = (() => {
             borderColor: COLORS.red,
             backgroundColor: COLORS.redLight,
             fill: true,
-            tension: 0.3, pointRadius: 4, pointHoverRadius: 7,
-            pointBackgroundColor: COLORS.red, pointBorderColor: isLight() ? '#f5f6fa' : '#0d1117', pointBorderWidth: 2,
-            borderWidth: 2,
+            tension: 0.3, borderWidth: 2,
           },
           {
             label: 'Net Worth',
@@ -566,9 +551,7 @@ const Charts = (() => {
             borderColor: COLORS.green,
             backgroundColor: 'transparent',
             fill: false,
-            tension: 0.3, pointRadius: 4, pointHoverRadius: 7,
-            pointBackgroundColor: COLORS.green, pointBorderColor: isLight() ? '#f5f6fa' : '#0d1117', pointBorderWidth: 2,
-            borderWidth: 2.5,
+            tension: 0.3, borderWidth: 2.5,
           }
         ]
       },
