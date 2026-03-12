@@ -55,6 +55,22 @@ body {
   gap: 8px;
 }
 
+.control-group select {
+  background: #2e3d50;
+  border: 1px solid #3d5166;
+  border-radius: 4px;
+  color: #e2e8f0;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 3px 6px;
+  cursor: pointer;
+  width: 100%;
+}
+.control-group select:focus {
+  outline: none;
+  border-color: #3b82f6;
+}
+
 .control-track input[type="range"] {
   flex: 1;
   accent-color: #3b82f6;

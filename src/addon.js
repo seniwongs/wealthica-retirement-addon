@@ -234,7 +234,7 @@ if (typeof Addon === 'undefined' || !_inWealthicaFrame) {
     { id: 'return-rate',       valId: 'return-rate-val',       stateKey: 'annualReturnRate',  stateValue: v => parseFloat(v)/100,  displayValue: p => p.annualReturnRate * 100,  min: 1,     max: 12      },
     { id: 'extra-income',      valId: 'extra-income-val',      stateKey: 'extraMonthlyIncome',stateValue: v => parseInt(v),        displayValue: p => p.extraMonthlyIncome,      min: 0,     max: 5000    },
     { id: 'expenses',          valId: 'expenses-val',          stateKey: 'monthlyExpenses',   stateValue: v => parseInt(v),        displayValue: p => p.monthlyExpenses,         min: 500,   max: 15000,   formatDisplay: v => Math.round(v).toLocaleString() },
-    { id: 'life-expectancy',   valId: 'life-expectancy-val',   stateKey: 'lifeExpectancy',    stateValue: v => parseInt(v),        displayValue: p => p.lifeExpectancy,          min: 75,    max: 100     },
+    { id: 'life-expectancy',   stateKey: 'lifeExpectancy',    stateValue: v => parseInt(v),        displayValue: p => p.lifeExpectancy,          min: 75,    max: 100,    type: 'select' },
   ];
 
   // Clamp saved params to valid ranges to prevent stale/invalid stored values.
@@ -252,12 +252,16 @@ if (typeof Addon === 'undefined' || !_inWealthicaFrame) {
   // Push state.params into both the range slider and the number input.
   function syncControlsToState() {
     controlDefs.forEach(def => {
-      const slider = document.getElementById(def.id);
-      const numInput = document.getElementById(def.valId);
-      if (!slider) return;
+      const el = document.getElementById(def.id);
+      if (!el) return;
       const v = def.displayValue(state.params);
-      slider.value   = v;
-      if (numInput) numInput.value = def.formatDisplay ? def.formatDisplay(v) : v;
+      if (def.type === 'select') {
+        el.value = v;
+      } else {
+        el.value = v;
+        const numInput = document.getElementById(def.valId);
+        if (numInput) numInput.value = def.formatDisplay ? def.formatDisplay(v) : v;
+      }
     });
   }
 
@@ -272,7 +276,25 @@ if (typeof Addon === 'undefined' || !_inWealthicaFrame) {
 
   function initControls() {
     controlDefs.forEach(def => {
-      const slider   = document.getElementById(def.id);
+      const el = document.getElementById(def.id);
+      if (!el) return;
+
+      if (def.type === 'select') {
+        for (let v = def.min; v <= def.max; v++) {
+          const opt = document.createElement('option');
+          opt.value = v;
+          opt.textContent = v;
+          el.appendChild(opt);
+        }
+        el.value = def.displayValue(state.params);
+        el.addEventListener('change', () => {
+          state.params[def.stateKey] = def.stateValue(el.value);
+          debounceRender();
+        });
+        return;
+      }
+
+      const slider   = el;
       const numInput = document.getElementById(def.valId);
       if (!slider) return;
 
