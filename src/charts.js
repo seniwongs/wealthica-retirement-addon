@@ -368,6 +368,24 @@ const Charts = (() => {
 
     const safeLine = withdrawalRates.map(() => 4); // 4% benchmark
 
+    const portfolioLabelPlugin = {
+      id: 'portfolioLabels',
+      afterDatasetsDraw(chart) {
+        const c = chart.ctx;
+        const meta = chart.getDatasetMeta(0); // bars dataset
+        meta.data.forEach((bar, i) => {
+          const value = withdrawalRates[i]?.portfolioValue;
+          if (value == null) return;
+          c.save();
+          c.font = 'bold 9px sans-serif';
+          c.fillStyle = '#6b7a8d';
+          c.textAlign = 'center';
+          c.fillText(fmt(value), bar.x, bar.y - 4);
+          c.restore();
+        });
+      }
+    };
+
     instances['withdrawal-rate'] = new Chart(ctx, {
       type: 'bar',
       data: {
@@ -416,7 +434,8 @@ const Charts = (() => {
             title: { display: true, text: 'Withdrawal Rate (%)', color: '#8fa3b3', font: { size: 11 } }
           }
         }
-      }
+      },
+      plugins: [portfolioLabelPlugin],
     });
   }
 
