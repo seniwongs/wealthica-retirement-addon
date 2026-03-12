@@ -109,11 +109,9 @@ if (typeof Addon === 'undefined' || !_inWealthicaFrame) {
       groups: options.groups,
       institutions: options.institutions,
     };
-    const txQuery = {
-      ...query,
-      from: options.fromDate,
-      to: options.toDate,
-    };
+    // Transactions: always fetch full history — ignore the dashboard date filter.
+    // Retirement projections need lifetime contribution data, not just the current window.
+    const txQuery = { ...query };
 
     Promise.all([
       addon.api.getPositions(query).catch(() => []),
