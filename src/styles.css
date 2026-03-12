@@ -7,7 +7,6 @@
   --text-2:        #64748b;
   --text-3:        rgba(255,255,255,0.3);
   --accent:        #22d3ee;
-  --accent-tab:    #22d3ee;
   --grid:          rgba(255,255,255,0.05);
   --chart-bg:      rgba(255,255,255,0.025);
   --chart-border:  rgba(255,255,255,0.07);
@@ -33,7 +32,6 @@
   --text-2:        #64748b;
   --text-3:        #94a3b8;
   --accent:        #3b82f6;
-  --accent-tab:    #3b82f6;
   --grid:          #e9edf3;
   --chart-bg:      #ffffff;
   --chart-border:  #e2e8f0;
@@ -418,8 +416,8 @@ body {
   white-space: nowrap;
   transition: color 0.15s, border-color 0.15s;
 }
-.tab:hover  { color: var(--accent-tab); }
-.tab.active { color: var(--accent-tab); border-bottom-color: var(--accent-tab); }
+.tab:hover  { color: var(--accent); }
+.tab.active { color: var(--accent); border-bottom-color: var(--accent); }
 
 /* ── Chart Panels ─────────────────────────────────────────────────────────────── */
 #chart-panels { flex: 1; background: var(--bg); }

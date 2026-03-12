@@ -102,7 +102,7 @@ if (typeof Addon === 'undefined' || !_inWealthicaFrame) {
   });
 
   addon.on('reload', function () {
-    console.log('[Retirement] reload');
+    // Re-fetch with current options — no options update
     fetchAllData(state.wealthicaOptions);
   });
 
@@ -292,7 +292,7 @@ if (typeof Addon === 'undefined' || !_inWealthicaFrame) {
   function clampParams(p) {
     controlDefs.forEach(def => {
       if (def.stateKey === 'annualReturnRate') {
-        p.annualReturnRate = Math.min(0.12, Math.max(0.01, p.annualReturnRate || 0.06));
+        p.annualReturnRate = Math.min(0.12, Math.max(0.01, p.annualReturnRate));
       } else if (p[def.stateKey] !== undefined) {
         p[def.stateKey] = Math.min(def.max, Math.max(def.min, p[def.stateKey]));
       }
@@ -306,10 +306,8 @@ if (typeof Addon === 'undefined' || !_inWealthicaFrame) {
       const el = document.getElementById(def.id);
       if (!el) return;
       const v = def.displayValue(state.params);
-      if (def.type === 'select') {
-        el.value = v;
-      } else {
-        el.value = v;
+      el.value = v;
+      if (def.type !== 'select') {
         const numInput = document.getElementById(def.valId);
         if (numInput) numInput.value = def.formatDisplay ? def.formatDisplay(v) : v;
       }
@@ -345,13 +343,11 @@ if (typeof Addon === 'undefined' || !_inWealthicaFrame) {
         return;
       }
 
-      const slider   = el;
       const numInput = document.getElementById(def.valId);
-      if (!slider) return;
 
       // Range slider moved → update number input + state
-      slider.addEventListener('input', () => {
-        state.params[def.stateKey] = def.stateValue(slider.value);
+      el.addEventListener('input', () => {
+        state.params[def.stateKey] = def.stateValue(el.value);
         const v = def.displayValue(state.params);
         if (numInput) numInput.value = def.formatDisplay ? def.formatDisplay(v) : v;
         debounceRender();
@@ -363,7 +359,7 @@ if (typeof Addon === 'undefined' || !_inWealthicaFrame) {
           const raw = parseFloat(numInput.value.replace(/,/g, '')) || def.min;
           const clamped = Math.min(def.max, Math.max(def.min, raw));
           numInput.value = def.formatDisplay ? def.formatDisplay(clamped) : clamped;
-          slider.value   = clamped;
+          el.value = clamped;
           state.params[def.stateKey] = def.stateValue(clamped);
           debounceRender();
         });
@@ -405,16 +401,18 @@ if (typeof Addon === 'undefined' || !_inWealthicaFrame) {
     tip.id = 'tip';
     document.body.appendChild(tip);
 
+    const TIP_WIDTH = 210;
+
     document.addEventListener('mouseover', e => {
       const el = e.target.closest('[data-tooltip]');
       if (!el) return;
       tip.textContent = el.dataset.tooltip;
-      tip.style.width = '210px';
+      tip.style.width = TIP_WIDTH + 'px';
       tip.classList.add('visible');
 
       const rect = el.getBoundingClientRect();
-      let left = rect.left + rect.width / 2 - 105; // 105 = half of 210
-      left = Math.max(8, Math.min(left, window.innerWidth - 218));
+      let left = rect.left + rect.width / 2 - TIP_WIDTH / 2;
+      left = Math.max(8, Math.min(left, window.innerWidth - TIP_WIDTH - 8));
       tip.style.left = left + 'px';
 
       // Show above element; fall back to below if too close to top

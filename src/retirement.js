@@ -27,11 +27,10 @@ const Retirement = (() => {
     const years = Object.keys(byYear).map(Number).sort();
     if (years.length === 0) return [];
 
-    const currentYear = new Date().getFullYear();
     let runningContributions = 0;
     const result = [];
 
-    years.forEach((year, i) => {
+    years.forEach(year => {
       runningContributions += byYear[year].contributions - byYear[year].withdrawals;
       result.push({ year, contributions: runningContributions });
     });
@@ -184,7 +183,7 @@ const Retirement = (() => {
         year: p.year,
         portfolioValue: p.value,
         annualWithdrawal,
-        withdrawalRate: p.value > 0 ? (annualWithdrawal / p.value) * 100 : 0,
+        withdrawalRate: (annualWithdrawal / p.value) * 100,
       }));
   }
 
@@ -210,8 +209,9 @@ const Retirement = (() => {
 
     for (let y = retirementYear; y <= endYear; y++) {
       const age = retirementAge + (y - retirementYear);
-      const cpp = age >= 65 ? cppMonthly * 12 : 0;
-      const oas = age >= 65 ? oasMonthly * 12 : 0;
+      const govBenefitsActive = age >= 65;
+      const cpp = govBenefitsActive ? cppMonthly * 12 : 0;
+      const oas = govBenefitsActive ? oasMonthly * 12 : 0;
       const extra = extraMonthlyIncome * 12;
       const totalPassive = cpp + oas + extra;
       const totalNeeded = monthlyExpenses * 12;
@@ -270,7 +270,6 @@ const Retirement = (() => {
       if (slice <= 0) break;
       tax += slice * rate;
       prev = limit;
-      if (prev >= taxable) break;
     }
     return Math.round(tax);
   }
@@ -289,7 +288,7 @@ const Retirement = (() => {
    * Compute total portfolio value from positions array.
    */
   function sumPortfolio(positions) {
-    if (!positions || positions.length === 0) return 0;
+    if (!positions) return 0;
     return positions.reduce((sum, p) => sum + (p.market_value || 0), 0);
   }
 
@@ -297,7 +296,7 @@ const Retirement = (() => {
    * Compute total liabilities value.
    */
   function sumLiabilities(liabilities) {
-    if (!liabilities || liabilities.length === 0) return 0;
+    if (!liabilities) return 0;
     return liabilities.reduce((sum, l) => sum + Math.abs(l.market_value || 0), 0);
   }
 

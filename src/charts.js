@@ -89,7 +89,7 @@ const Charts = (() => {
           ticks: {
             color: tickColor,
             font: { size: 10 },
-            callback: v => '$' + (v >= 1e6 ? (v/1e6).toFixed(1)+'M' : v >= 1e3 ? (v/1e3).toFixed(0)+'k' : v)
+            callback: fmtAxis
           },
           grid:  { color: gridColor },
           border:{ color: borderColor },
@@ -104,6 +104,18 @@ const Charts = (() => {
     if (abs >= 1e6) return '$' + (v/1e6).toFixed(2) + 'M';
     if (abs >= 1e3) return '$' + (v/1e3).toFixed(0) + 'k';
     return '$' + v.toFixed(0);
+  }
+
+  // Compact axis labels — 1 decimal for M, no cents elsewhere
+  function fmtAxis(v) {
+    if (v >= 1e6) return '$' + (v/1e6).toFixed(1) + 'M';
+    if (v >= 1e3) return '$' + (v/1e3).toFixed(0) + 'k';
+    return '$' + v;
+  }
+
+  function getStackedOptions() {
+    const bo = getBaseOptions();
+    return { ...bo, scales: { ...bo.scales, x: { ...bo.scales.x, stacked: true }, y: { ...bo.scales.y, stacked: true } } };
   }
 
   function destroyIfExists(id) {
@@ -232,7 +244,7 @@ const Charts = (() => {
     if (!ctx) return;
 
     if (!historicalData || historicalData.length === 0) {
-      _showNoData(ctx, 'contributions'); return;
+      _showNoData(ctx); return;
     }
 
     instances['contributions'] = new Chart(ctx, {
@@ -254,7 +266,7 @@ const Charts = (() => {
           }
         ]
       },
-      options: (() => { const bo = getBaseOptions(); return { ...bo, scales: { ...bo.scales, x: { ...bo.scales.x, stacked: true }, y: { ...bo.scales.y, stacked: true } } }; })()
+      options: getStackedOptions()
     });
   }
 
@@ -275,8 +287,8 @@ const Charts = (() => {
           label: 'Portfolio Balance',
           data: retirementData.map(d => d.value),
           borderColor: COLORS.blue,
-          backgroundColor: ctx => {
-            const gradient = ctx.chart.ctx.createLinearGradient(0, 0, 0, 300);
+          backgroundColor: chartCtx => {
+            const gradient = chartCtx.chart.ctx.createLinearGradient(0, 0, 0, 300);
             gradient.addColorStop(0, 'rgba(59,130,246,0.3)');
             gradient.addColorStop(1, 'rgba(59,130,246,0.0)');
             return gradient;
@@ -312,7 +324,6 @@ const Charts = (() => {
     if (!ctx) return;
 
     const { percentiles, successRate, years } = mcResult;
-    const labels = years;
 
     // Update stats panel
     const statsEl = document.getElementById('mc-stats');
@@ -351,7 +362,7 @@ const Charts = (() => {
     instances['monte-carlo'] = new Chart(ctx, {
       type: 'line',
       data: {
-        labels,
+        labels: years,
         datasets: [
           {
             label: 'Best 10% (p90)',
@@ -442,7 +453,7 @@ const Charts = (() => {
           }
         ]
       },
-      options: (() => { const bo = getBaseOptions(); return { ...bo, scales: { ...bo.scales, x: { ...bo.scales.x, stacked: true }, y: { ...bo.scales.y, stacked: true } } }; })()
+      options: getStackedOptions()
     });
   }
 
@@ -452,7 +463,8 @@ const Charts = (() => {
     const ctx = document.getElementById('chart-withdrawal-rate');
     if (!ctx) return;
 
-    const safeLine = withdrawalRates.map(() => 4); // 4% benchmark
+    const SAFE_RATE = 4;
+    const safeLine = withdrawalRates.map(() => SAFE_RATE);
 
     const portfolioLabelPlugin = {
       id: 'portfolioLabels',
@@ -487,7 +499,7 @@ const Charts = (() => {
             yAxisID: 'y',
           },
           {
-            label: '4% Safe Withdrawal Rate',
+            label: `${SAFE_RATE}% Safe Withdrawal Rate`,
             data: safeLine,
             type: 'line',
             borderColor: COLORS.gray,
@@ -559,9 +571,8 @@ const Charts = (() => {
     });
   }
 
-  function _showNoData(canvas, id) {
-    const parent = canvas.parentElement;
-    parent.innerHTML = '<p style="color:#8fa3b3;text-align:center;padding:40px">No historical data available yet.</p>';
+  function _showNoData(canvas) {
+    canvas.parentElement.innerHTML = '<p style="color:#8fa3b3;text-align:center;padding:40px">No historical data available yet.</p>';
   }
 
   return {
