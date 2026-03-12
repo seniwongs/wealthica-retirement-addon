@@ -148,7 +148,6 @@ if (typeof Addon === 'undefined' || !_inWealthicaFrame) {
       state.liabilities  = liabilities  || [];
       state.user = user;
       showLoading(false);
-      setLastUpdated();
       renderAll();
     }).catch(err => {
       console.error('[Retirement] unexpected fetch error:', err);
@@ -318,20 +317,11 @@ if (typeof Addon === 'undefined' || !_inWealthicaFrame) {
     if (el) el.classList.toggle('hidden', !visible);
   }
 
-  function setLastUpdated() {
-    const el = document.getElementById('last-updated');
-    if (el) el.textContent = 'Updated ' + new Date().toLocaleTimeString();
-  }
-
   // ── Bootstrap ─────────────────────────────────────────────────────────────────
   document.addEventListener('DOMContentLoaded', () => {
     initControls();
     initTabs();
     syncControlsToState();
-    document.getElementById('btn-refresh')?.addEventListener('click', () => {
-      console.log('[Retirement] manual refresh');
-      fetchAllData(state.wealthicaOptions);
-    });
   });
 
 })();
