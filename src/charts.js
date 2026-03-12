@@ -356,6 +356,12 @@ const Charts = (() => {
             data: incomeSources.map(d => d.extra),
             backgroundColor: COLORS.purple,
             stack: 's',
+          },
+          {
+            label: 'Est. Tax',
+            data: incomeSources.map(d => -(d.estimatedTax || 0)),
+            backgroundColor: COLORS.red,
+            stack: 's',
           }
         ]
       },

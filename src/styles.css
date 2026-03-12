@@ -190,6 +190,23 @@ body {
 }
 @keyframes spin { to { transform: rotate(360deg); } }
 
+/* ── On-Track Banner ──────────────────────────────────────────────────────── */
+.track-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 20px;
+  font-size: 12px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+.track-banner.hidden    { display: none; }
+.track-banner.on-track  { background: #ecfdf5; color: #065f46; border-bottom: 1px solid #a7f3d0; }
+.track-banner.off-track { background: #fff7ed; color: #92400e; border-bottom: 1px solid #fcd34d; }
+.track-banner #track-icon    { font-size: 14px; }
+.track-banner #track-message { font-weight: 700; }
+.track-banner #track-detail  { font-weight: 400; color: inherit; opacity: 0.8; }
+
 /* ── Stats Strip ──────────────────────────────────────────────────────────── */
 #stats-strip {
   display: flex;

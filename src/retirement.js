@@ -216,10 +216,63 @@ const Retirement = (() => {
       const totalPassive = cpp + oas + extra;
       const totalNeeded = monthlyExpenses * 12;
       const portfolioWithdrawal = Math.max(0, totalNeeded - totalPassive);
-      result.push({ year: y, portfolioWithdrawal, cpp, oas, extra });
+      const grossIncome = portfolioWithdrawal + cpp + oas + extra;
+      const estimatedTax = estimateAnnualTax(grossIncome);
+      result.push({ year: y, portfolioWithdrawal, cpp, oas, extra, estimatedTax });
     }
 
     return result;
+  }
+
+  /**
+   * Monthly savings required to reach targetAmount by retirement.
+   * Returns 0 if current portfolio alone will exceed the target.
+   */
+  function calcRequiredMonthlySavings(params) {
+    const { currentValue, targetAmount, retirementAge, currentAge, annualReturnRate } = params;
+    const years = retirementAge - currentAge;
+    if (years <= 0) return 0;
+    const fvCurrent = currentValue * Math.pow(1 + annualReturnRate, years);
+    const needed = targetAmount - fvCurrent;
+    if (needed <= 0) return 0;
+    const monthlyRate = Math.pow(1 + annualReturnRate, 1 / 12) - 1;
+    const months = years * 12;
+    return Math.ceil(needed * monthlyRate / (Math.pow(1 + monthlyRate, months) - 1));
+  }
+
+  /**
+   * FIRE number: portfolio needed to sustain expenses indefinitely at 4% SWR.
+   * Uses net expenses after CPP, OAS, and extra income.
+   */
+  function calcFireNumber(params) {
+    const { monthlyExpenses, cppMonthly = 0, oasMonthly = 0, extraMonthlyIncome = 0 } = params;
+    const annualNetExpenses = Math.max(0, (monthlyExpenses - cppMonthly - oasMonthly - extraMonthlyIncome) * 12);
+    return Math.round(annualNetExpenses / 0.04);
+  }
+
+  /**
+   * Simplified Canadian combined federal + provincial effective tax on RRSP withdrawal income.
+   */
+  function estimateAnnualTax(grossAnnualIncome) {
+    const bpa = 16_000; // ~basic personal amount
+    if (grossAnnualIncome <= bpa) return 0;
+    const taxable = grossAnnualIncome - bpa;
+    // Blended federal + average provincial marginal rates
+    const brackets = [
+      [45_000, 0.205],
+      [50_000, 0.305],
+      [60_000, 0.370],
+      [Infinity, 0.430],
+    ];
+    let tax = 0, prev = 0;
+    for (const [limit, rate] of brackets) {
+      const slice = Math.min(taxable - prev, limit - prev);
+      if (slice <= 0) break;
+      tax += slice * rate;
+      prev = limit;
+      if (prev >= taxable) break;
+    }
+    return Math.round(tax);
   }
 
   /**
@@ -254,6 +307,8 @@ const Retirement = (() => {
     monteCarlo,
     calcWithdrawalRates,
     buildIncomeSources,
+    calcRequiredMonthlySavings,
+    calcFireNumber,
     estimateCurrentAge,
     sumPortfolio,
     sumLiabilities,

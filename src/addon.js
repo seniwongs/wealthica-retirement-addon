@@ -227,11 +227,40 @@ if (typeof Addon === 'undefined' || !_inWealthicaFrame) {
       if (isGain) el.className = 'stat-value' + (value < 0 ? ' negative' : '');
     }
 
+    const fireNumber       = Retirement.calcFireNumber(calcParams);
+    const monthlySavingsNeeded = Retirement.calcRequiredMonthlySavings(calcParams);
+    const projectedAtRetirement = retirementPoint ? retirementPoint.value : 0;
+    const surplus = projectedAtRetirement - p.targetAmount;
+
     setStatEl('stat-portfolio',     currentPortfolioValue);
     setStatEl('stat-contributed',   totalContributed);
     setStatEl('stat-gains',         investmentGains, true);
-    setStatEl('stat-at-retirement', retirementPoint ? retirementPoint.value : 0);
+    setStatEl('stat-at-retirement', projectedAtRetirement);
+    setStatEl('stat-fire',          fireNumber);
+    setStatEl('stat-save-needed',   monthlySavingsNeeded);
     setStatEl('stat-remaining',     lastPoint ? lastPoint.value : 0);
+
+    // ── On-track banner ────────────────────────────────────────────────────────
+    const banner  = document.getElementById('track-banner');
+    const iconEl  = document.getElementById('track-icon');
+    const msgEl   = document.getElementById('track-message');
+    const detEl   = document.getElementById('track-detail');
+    if (banner && projectedAtRetirement > 0) {
+      banner.classList.remove('hidden', 'on-track', 'off-track');
+      if (surplus >= 0) {
+        banner.classList.add('on-track');
+        iconEl.textContent  = '✅';
+        msgEl.textContent   = 'You are on track!';
+        detEl.textContent   = 'Projected surplus of ' + Charts.fmt(surplus) + ' at retirement.';
+      } else {
+        banner.classList.add('off-track');
+        iconEl.textContent  = '⚠️';
+        msgEl.textContent   = 'Shortfall of ' + Charts.fmt(Math.abs(surplus));
+        detEl.textContent   = monthlySavingsNeeded > 0
+          ? 'Save an extra ' + Charts.fmt(monthlySavingsNeeded) + '/mo to reach your goal.'
+          : 'Adjust your target or retirement age.';
+      }
+    }
 
     // Render each chart
     Charts.renderPortfolioValue(historicalData, projection, p.targetAmount);
