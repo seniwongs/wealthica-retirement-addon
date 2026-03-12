@@ -173,7 +173,8 @@ const Charts = (() => {
             backgroundColor: histFill,
             fill: true,
             tension: 0.3,
-            pointRadius: 0,
+            pointRadius: 3,
+            pointHoverRadius: 6,
             borderWidth: 2.5,
           },
           {
@@ -186,7 +187,8 @@ const Charts = (() => {
             borderDash: [4, 4],
             fill: false,
             tension: 0.3,
-            pointRadius: 0,
+            pointRadius: 3,
+            pointHoverRadius: 6,
             borderWidth: 2,
           },
           {
@@ -199,7 +201,8 @@ const Charts = (() => {
             borderDash: [4, 4],
             fill: false,
             tension: 0.3,
-            pointRadius: 0,
+            pointRadius: 3,
+            pointHoverRadius: 6,
             borderWidth: 2,
           },
           ...(targetAmount ? [{
@@ -277,7 +280,8 @@ const Charts = (() => {
           },
           fill: true,
           tension: 0.3,
-          pointRadius: 0,
+          pointRadius: 3,
+          pointHoverRadius: 6,
           borderWidth: 2.5,
         }]
       },
@@ -530,7 +534,7 @@ const Charts = (() => {
             borderColor: COLORS.blue,
             backgroundColor: COLORS.blueLight,
             fill: true,
-            tension: 0.3, pointRadius: 0, borderWidth: 2,
+            tension: 0.3, pointRadius: 3, pointHoverRadius: 6, borderWidth: 2,
           },
           {
             label: 'Liabilities',
@@ -538,7 +542,7 @@ const Charts = (() => {
             borderColor: COLORS.red,
             backgroundColor: COLORS.redLight,
             fill: true,
-            tension: 0.3, pointRadius: 0, borderWidth: 2,
+            tension: 0.3, pointRadius: 3, pointHoverRadius: 6, borderWidth: 2,
           },
           {
             label: 'Net Worth',
@@ -546,7 +550,7 @@ const Charts = (() => {
             borderColor: COLORS.green,
             backgroundColor: 'transparent',
             fill: false,
-            tension: 0.3, pointRadius: 0, borderWidth: 2.5,
+            tension: 0.3, pointRadius: 3, pointHoverRadius: 6, borderWidth: 2.5,
           }
         ]
       },
