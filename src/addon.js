@@ -110,24 +110,36 @@ if (typeof Addon === 'undefined' || !_inWealthicaFrame) {
   });
 
   // ── Data Fetching ────────────────────────────────────────────────────────────
-  // Wealthica API expects groups/institutions as comma-separated strings.
+  // Wealthica SDK passes filter state in the options object using these fields:
+  //   options.institutionsFilter  — array of institution objects ({ _id, ... }) or strings
+  //   options.groupsFilter        — array of group objects or strings
+  //   options.dateRangeFilter     — [fromDate, toDate] array
+  // The API expects groups/institutions as comma-separated ID strings.
   function toApiParam(val) {
     if (!val) return undefined;
-    return Array.isArray(val) ? val.join(',') : val;
+    if (Array.isArray(val)) {
+      // Institution/group entries may be objects with _id or plain strings
+      return val.map(item => (item && typeof item === 'object' ? item._id : item)).join(',');
+    }
+    return val;
   }
 
   function fetchAllData(options) {
     showLoading(true);
 
-    // SDK options use fromDate/toDate; API calls also use fromDate/toDate.
-    const groups       = toApiParam(options.groups);
-    const institutions = toApiParam(options.institutions);
+    // SDK options use xFilter field names; API calls use groups/institutions/fromDate/toDate.
+    // Support both the real SDK format (xFilter) and any legacy direct fields.
+    const groups       = toApiParam(options.groupsFilter       || options.groups);
+    const institutions = toApiParam(options.institutionsFilter || options.institutions);
+    const dateRange    = options.dateRangeFilter;
+    const fromDate     = (dateRange && dateRange[0]) || options.fromDate;
+    const toDate       = (dateRange && dateRange[1]) || options.toDate;
 
     const query = {
       groups,
       institutions,
-      fromDate: options.fromDate,
-      toDate:   options.toDate,
+      fromDate,
+      toDate,
     };
     // Transactions: no date range so we get full contribution history,
     // but still respect the group/institution filter.
