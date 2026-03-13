@@ -681,7 +681,7 @@ const Charts = (() => {
 
     if (assetsValue > 0) {
       datasets.splice(1, 0, {
-        label: 'Other Assets',
+        label: 'Real Estate & Other Assets',
         data: assetsData,
         borderColor: COLORS.amber,
         backgroundColor: 'transparent',
