@@ -401,7 +401,9 @@ body {
   border-bottom: 1px solid var(--border);
   overflow-x: auto;
   flex-shrink: 0;
+  scrollbar-width: none;
 }
+#tabs::-webkit-scrollbar { display: none; }
 
 .tab {
   padding: 8px 14px;
@@ -469,6 +471,46 @@ body {
 .mc-stat .value.good { color: #4ade80; }
 .mc-stat .value.warn { color: #fbbf24; }
 .mc-stat .value.bad  { color: #f87171; }
+
+/* ── Sensitivity Bar ─────────────────────────────────────────────────────── */
+.sensitivity-bar {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: 4px 0 8px;
+}
+.tog-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.tog-label {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-2);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+}
+.tog-btn {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 3px 10px;
+  font-size: 11px;
+  color: var(--text-2);
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+  white-space: nowrap;
+}
+.tog-btn:hover { border-color: var(--accent); color: var(--text-1); }
+.tog-btn.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+  font-weight: 600;
+}
+[data-theme="light"] .tog-btn.active { color: #fff; }
 
 /* ── Data Tooltips ───────────────────────────────────────────────────────────── */
 [data-tooltip] { cursor: help; }

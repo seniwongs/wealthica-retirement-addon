@@ -80,6 +80,9 @@ if (typeof Addon === 'undefined' || !_inWealthicaFrame) {
     }
   };
 
+  // Sensitivity overrides for the Runway chart (null = use base params)
+  const runwaySensitivity = { returnRate: null, inflationRate: null };
+
   // ── Wealthica SDK ────────────────────────────────────────────────────────────
   const addon = new Addon();
 
@@ -265,11 +268,69 @@ if (typeof Addon === 'undefined' || !_inWealthicaFrame) {
     // Render each chart
     Charts.renderPortfolioValue(historicalData, projection, p.targetAmount, retirementYear);
     Charts.renderContributions(historicalData);
-    Charts.renderRunway(projection, retirementYear);
+    renderRunwayChart();
     Charts.renderMonteCarlo(mcResult);
     Charts.renderIncomeSources(incomeSources);
     Charts.renderWithdrawalRate(withdrawalRates);
     Charts.renderNetWorth(projection, totalLiabilities);
+  }
+
+  // ── Runway Chart (with sensitivity overrides) ────────────────────────────────
+  function renderRunwayChart() {
+    const p = state.params;
+    const currentYear = new Date().getFullYear();
+    const currentPortfolioValue = Retirement.sumPortfolio(state.positions);
+    const inflationRate = runwaySensitivity.inflationRate !== null
+      ? runwaySensitivity.inflationRate
+      : (document.getElementById('inflation-toggle')?.checked ? 0.02 : 0);
+    const annualReturnRate = runwaySensitivity.returnRate !== null
+      ? runwaySensitivity.returnRate
+      : p.annualReturnRate;
+
+    const calcParams = {
+      currentValue: currentPortfolioValue,
+      currentYear,
+      currentAge: p.currentAge,
+      retirementAge: p.retirementAge,
+      lifeExpectancy: p.lifeExpectancy,
+      annualReturnRate,
+      monthlyExpenses: p.monthlyExpenses,
+      extraMonthlyIncome: p.extraMonthlyIncome,
+      cppMonthly: p.cppMonthly,
+      oasMonthly: p.oasMonthly,
+      inflationRate,
+    };
+
+    const rawProjection = Retirement.projectPortfolio(calcParams);
+    const projection = inflationRate > 0
+      ? rawProjection.map(d => ({
+          ...d,
+          value: Math.round(d.value / Math.pow(1 + inflationRate, d.year - currentYear))
+        }))
+      : rawProjection;
+    const retirementYear = currentYear + (p.retirementAge - p.currentAge);
+    Charts.renderRunway(projection, retirementYear, calcParams);
+  }
+
+  function initRunwaySensitivity() {
+    document.querySelectorAll('[data-runway-return]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('[data-runway-return]').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        const v = btn.dataset.runwayReturn;
+        runwaySensitivity.returnRate = v === 'base' ? null : parseFloat(v);
+        renderRunwayChart();
+      });
+    });
+    document.querySelectorAll('[data-runway-inflation]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('[data-runway-inflation]').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        const v = btn.dataset.runwayInflation;
+        runwaySensitivity.inflationRate = v === 'base' ? null : parseFloat(v);
+        renderRunwayChart();
+      });
+    });
   }
 
   // ── Controls Wiring ──────────────────────────────────────────────────────────
@@ -392,6 +453,7 @@ if (typeof Addon === 'undefined' || !_inWealthicaFrame) {
     initControls();
     initTabs();
     initTooltips();
+    initRunwaySensitivity();
     syncControlsToState();
     document.getElementById('inflation-toggle')?.addEventListener('change', () => renderAll());
   });

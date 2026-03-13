@@ -271,49 +271,159 @@ const Charts = (() => {
   }
 
   // ── Chart 3: Retirement Runway ──────────────────────────────────────────────
-  function renderRunway(projection, retirementYear) {
+  function renderRunway(projection, retirementYear, params) {
     destroyIfExists('runway');
     const ctx = document.getElementById('chart-runway');
     if (!ctx) return;
 
-    const retirementData = projection.filter(d => d.year >= retirementYear);
-    const depletionYear = retirementData.find(d => d.value === 0);
+    const retData = projection.filter(d => d.year >= retirementYear);
+    if (!retData.length) return;
 
+    // Build safe withdrawal line: portfolio needed to sustain net expenses at 4% SWR
+    const safeData = retData.map(d => {
+      const age = params.retirementAge + (d.year - retirementYear);
+      let netAnnual;
+      if (age >= 65) {
+        netAnnual = (params.monthlyExpenses - (params.cppMonthly || 0) - (params.oasMonthly || 0) - (params.extraMonthlyIncome || 0)) * 12;
+      } else {
+        netAnnual = (params.monthlyExpenses - (params.extraMonthlyIncome || 0)) * 12;
+      }
+      return Math.max(0, netAnnual) / 0.04;
+    });
+
+    // Build milestone markers
+    const milestones = [];
+    milestones.push({ year: retirementYear, label: `Retirement (${retirementYear})` });
+    if (params.retirementAge < 65) {
+      milestones.push({ year: retirementYear + (65 - params.retirementAge), label: 'CPP & OAS' });
+    }
+    if (params.lifeExpectancy > 71 && params.retirementAge <= 71) {
+      milestones.push({ year: retirementYear + (71 - params.retirementAge), label: 'RRIF (71)' });
+    }
+    const depletionPt = retData.find(d => d.value === 0);
+    if (depletionPt) {
+      milestones.push({ year: depletionPt.year, label: 'Portfolio Depleted' });
+    }
+
+    // Plugin: green/red fill between portfolio and safe withdrawal lines
+    const runwayPlugin = {
+      id: 'runwayFill',
+      beforeDatasetsDraw(chart) {
+        const { ctx: c, chartArea, scales } = chart;
+        const xScale = scales.x;
+        const yScale = scales.y;
+        if (!chartArea) return;
+        const portfolioDs = chart.data.datasets[0];
+        const safeDs      = chart.data.datasets[1];
+        const n = portfolioDs.data.length;
+        if (n < 2) return;
+        c.save();
+        c.beginPath();
+        c.rect(chartArea.left, chartArea.top, chartArea.width, chartArea.height);
+        c.clip();
+        for (let i = 0; i < n - 1; i++) {
+          const x0  = xScale.getPixelForValue(i);
+          const x1  = xScale.getPixelForValue(i + 1);
+          const pv0 = yScale.getPixelForValue(portfolioDs.data[i] ?? 0);
+          const pv1 = yScale.getPixelForValue(portfolioDs.data[i + 1] ?? 0);
+          const sv0 = yScale.getPixelForValue(safeDs.data[i] ?? 0);
+          const sv1 = yScale.getPixelForValue(safeDs.data[i + 1] ?? 0);
+          c.fillStyle = (portfolioDs.data[i] >= safeDs.data[i])
+            ? 'rgba(74,222,128,0.12)'
+            : 'rgba(248,113,113,0.12)';
+          c.beginPath();
+          c.moveTo(x0, pv0);
+          c.lineTo(x1, pv1);
+          c.lineTo(x1, sv1);
+          c.lineTo(x0, sv0);
+          c.closePath();
+          c.fill();
+        }
+        c.restore();
+      }
+    };
+
+    // Plugin: vertical dashed milestone lines with labels
+    const milestonePlugin = {
+      id: 'runwayMilestones',
+      afterDraw(chart) {
+        const { ctx: c, chartArea, scales } = chart;
+        const xScale = scales.x;
+        const labels = chart.data.labels;
+        milestones.forEach(({ year, label }) => {
+          const idx = labels.indexOf(year);
+          if (idx < 0) return;
+          const x = xScale.getPixelForValue(idx);
+          if (!isFinite(x)) return;
+          c.save();
+          c.strokeStyle = 'rgba(255,255,255,0.25)';
+          c.lineWidth = 1;
+          c.setLineDash([4, 4]);
+          c.beginPath();
+          c.moveTo(x, chartArea.top);
+          c.lineTo(x, chartArea.bottom);
+          c.stroke();
+          c.fillStyle = 'rgba(255,255,255,0.5)';
+          c.font = '10px sans-serif';
+          c.textAlign = 'center';
+          c.fillText(label, x, chartArea.top + 12);
+          c.restore();
+        });
+      }
+    };
+
+    const bo = getBaseOptions();
     instances['runway'] = new Chart(ctx, {
       type: 'line',
       data: {
-        labels: retirementData.map(d => d.year),
-        datasets: [{
-          label: 'Portfolio Balance',
-          data: retirementData.map(d => d.value),
-          borderColor: COLORS.blue,
-          backgroundColor: chartCtx => {
-            const gradient = chartCtx.chart.ctx.createLinearGradient(0, 0, 0, 300);
-            gradient.addColorStop(0, 'rgba(59,130,246,0.3)');
-            gradient.addColorStop(1, 'rgba(59,130,246,0.0)');
-            return gradient;
+        labels: retData.map(d => d.year),
+        datasets: [
+          {
+            label: 'Portfolio Balance',
+            data: retData.map(d => d.value),
+            borderColor: COLORS.blue,
+            backgroundColor: 'transparent',
+            fill: false,
+            tension: 0.3,
+            borderWidth: 2.5,
+            pointRadius: 0,
           },
-          fill: true,
-          tension: 0.3,
-          borderWidth: 2.5,
-        }]
+          {
+            label: 'Safe Withdrawal Level',
+            data: safeData,
+            borderColor: COLORS.amber,
+            borderDash: [5, 4],
+            borderWidth: 1.5,
+            backgroundColor: 'transparent',
+            fill: false,
+            tension: 0,
+            pointRadius: 0,
+          }
+        ]
       },
-      options: (() => { const bo = getBaseOptions(); return { ...bo,
-          interaction: { mode: 'index', intersect: false },
-          plugins: { ...bo.plugins,
-            annotation: depletionYear ? {
-              annotations: {
-                depletion: {
-                  type: 'line',
-                  xMin: depletionYear.year,
-                  xMax: depletionYear.year,
-                  borderColor: COLORS.red,
-                  borderWidth: 2,
-                  label: { content: 'Depletion', enabled: true, color: COLORS.red }
-                }
+      options: {
+        ...bo,
+        interaction: { mode: 'index', intersect: false },
+        plugins: {
+          ...bo.plugins,
+          tooltip: {
+            ...bo.plugins.tooltip,
+            callbacks: {
+              ...bo.plugins.tooltip.callbacks,
+              afterBody: items => {
+                if (!items.length) return [];
+                const i = items[0].dataIndex;
+                const portfolio = retData[i]?.value ?? 0;
+                const safe = safeData[i] ?? 0;
+                const diff = portfolio - safe;
+                if (diff >= 0) return [`  Surplus: ${fmt(diff)}`];
+                return [`  Risk Zone: ${fmt(Math.abs(diff))} short`];
               }
-            } : {}
-          } }; })()
+            }
+          }
+        }
+      },
+      plugins: [runwayPlugin, milestonePlugin],
     });
   }
 

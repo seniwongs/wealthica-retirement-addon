@@ -7,7 +7,7 @@
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📈</text></svg>" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@wealthica/wealthica.js/dist/addon.min.js"></script>
-  <link rel="stylesheet" href="src/styles.css?v=21" />
+  <link rel="stylesheet" href="src/styles.css?v=23" />
 </head>
 <body>
   <div id="app">
@@ -197,6 +197,20 @@
         <div class="chart-panel" id="panel-runway">
           <h2>Retirement Runway</h2>
           <p class="chart-desc">Projected portfolio balance from retirement to end-of-life.</p>
+          <div class="sensitivity-bar">
+            <div class="tog-group">
+              <span class="tog-label">Return</span>
+              <button class="tog-btn active" data-runway-return="base">Base</button>
+              <button class="tog-btn" data-runway-return="0.04">Bear (4%)</button>
+              <button class="tog-btn" data-runway-return="0.08">Bull (8%)</button>
+            </div>
+            <div class="tog-group">
+              <span class="tog-label">Inflation</span>
+              <button class="tog-btn active" data-runway-inflation="base">None</button>
+              <button class="tog-btn" data-runway-inflation="0.02">Moderate (2%)</button>
+              <button class="tog-btn" data-runway-inflation="0.04">High (4%)</button>
+            </div>
+          </div>
           <div class="chart-wrapper"><canvas id="chart-runway"></canvas></div>
         </div>
         <div class="chart-panel" id="panel-monte-carlo">
@@ -222,11 +236,11 @@
         </div>
       </div>
     </div>
-    <footer id="app-footer">v21</footer>
+    <footer id="app-footer">v23</footer>
   </div>
 
-  <script src="src/retirement.js?v=21"></script>
-  <script src="src/charts.js?v=21"></script>
-  <script src="src/addon.js?v=21"></script>
+  <script src="src/retirement.js?v=23"></script>
+  <script src="src/charts.js?v=23"></script>
+  <script src="src/addon.js?v=23"></script>
 </body>
 </html>
