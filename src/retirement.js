@@ -297,7 +297,8 @@ const Retirement = (() => {
    */
   function sumLiabilities(liabilities) {
     if (!liabilities) return 0;
-    return liabilities.reduce((sum, l) => sum + Math.abs(l.market_value || 0), 0);
+    // Wealthica liabilities may use 'value' or 'market_value' depending on API version
+    return liabilities.reduce((sum, l) => sum + Math.abs(l.market_value || l.value || 0), 0);
   }
 
   return {

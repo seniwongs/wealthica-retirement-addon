@@ -150,15 +150,17 @@ if (typeof Addon === 'undefined' || !_inWealthicaFrame) {
     // Transactions: no date range so we get full contribution history,
     // but still respect the group/institution filter.
     const txQuery = { groups, institutions };
+    // Liabilities/assets are snapshots — no date range, just filter by group/institution.
+    const snapshotQuery = { groups, institutions };
 
     Promise.all([
       addon.api.getPositions(query)
         .catch(err => { console.error('[Retirement] getPositions error:', err); return []; }),
       addon.api.getTransactions(txQuery)
         .catch(err => { console.error('[Retirement] getTransactions error:', err); return []; }),
-      addon.api.getLiabilities(query)
+      addon.api.getLiabilities(snapshotQuery)
         .catch(err => { console.error('[Retirement] getLiabilities error:', err); return []; }),
-      addon.api.getAssets(query)
+      addon.api.getAssets(snapshotQuery)
         .catch(err => { console.error('[Retirement] getAssets error:', err); return []; }),
       addon.api.getUser()
         .catch(err => { console.error('[Retirement] getUser error:', err); return null; }),
@@ -166,8 +168,8 @@ if (typeof Addon === 'undefined' || !_inWealthicaFrame) {
       console.log('[Retirement] data received —',
         'positions:', positions?.length,
         'transactions:', transactions?.length,
-        'liabilities:', liabilities?.length,
-        'assets:', assets?.length,
+        'liabilities:', liabilities?.length, liabilities?.[0],
+        'assets:', assets?.length, assets?.[0],
         'user:', user?.birthday);
       state.positions    = positions    || [];
       state.transactions = transactions || [];
