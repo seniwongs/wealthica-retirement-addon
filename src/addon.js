@@ -154,7 +154,7 @@ if (typeof Addon === 'undefined' || !_inWealthicaFrame) {
     const snapshotQuery = { groups, institutions };
 
     Promise.all([
-      addon.api.getPositions(query)
+      addon.api.getPositions(snapshotQuery)
         .catch(err => { console.error('[Retirement] getPositions error:', err); return []; }),
       addon.api.getTransactions(txQuery)
         .catch(err => { console.error('[Retirement] getTransactions error:', err); return []; }),
