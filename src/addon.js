@@ -104,8 +104,13 @@ if (typeof Addon === 'undefined' || !_inWealthicaFrame) {
     fetchAllData(options);
   });
 
+  let _ignoringNextUpdate = false;
   addon.on('update', function (options) {
     console.log('[Retirement] update', options);
+    if (_ignoringNextUpdate) {
+      _ignoringNextUpdate = false;
+      return; // echo from our own saveData — filter unchanged, no re-fetch needed
+    }
     state.wealthicaOptions = options;
     fetchAllData(options);
   });
@@ -405,6 +410,7 @@ if (typeof Addon === 'undefined' || !_inWealthicaFrame) {
     clearTimeout(debounceTimer);
     debounceTimer = setTimeout(() => {
       renderAll();
+      _ignoringNextUpdate = true;
       addon.saveData({ params: state.params });
     }, 400);
   }
