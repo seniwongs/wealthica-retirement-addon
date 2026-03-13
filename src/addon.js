@@ -20,6 +20,7 @@ if (typeof Addon === 'undefined' || !_inWealthicaFrame) {
       getPositions:    () => Promise.resolve(DEMO_DATA.positions),
       getTransactions: () => Promise.resolve(DEMO_DATA.transactions),
       getLiabilities:  () => Promise.resolve(DEMO_DATA.liabilities),
+      getAssets:       () => Promise.resolve(DEMO_DATA.assets),
       getUser:         () => Promise.resolve(DEMO_DATA.user),
     };
     this.on = function (event, fn) { self._handlers[event] = fn; return self; };
@@ -38,6 +39,10 @@ if (typeof Addon === 'undefined' || !_inWealthicaFrame) {
       { name: 'VCN.TO',   market_value:  55000 },
       { name: 'ZAG.TO',   market_value:  38000 },
       { name: 'CASH',     market_value:  12000 },
+    ],
+    assets: [
+      { name: 'Primary Residence', market_value: 750000 },
+      { name: 'Vehicle',           market_value:  25000 },
     ],
     liabilities: [
       { name: 'Mortgage', market_value: -280000 },
@@ -64,6 +69,7 @@ if (typeof Addon === 'undefined' || !_inWealthicaFrame) {
     positions: [],
     transactions: [],
     liabilities: [],
+    assets: [],
     user: null,
     wealthicaOptions: {},
     // User-controlled assumption params
@@ -152,17 +158,21 @@ if (typeof Addon === 'undefined' || !_inWealthicaFrame) {
         .catch(err => { console.error('[Retirement] getTransactions error:', err); return []; }),
       addon.api.getLiabilities(query)
         .catch(err => { console.error('[Retirement] getLiabilities error:', err); return []; }),
+      addon.api.getAssets(query)
+        .catch(err => { console.error('[Retirement] getAssets error:', err); return []; }),
       addon.api.getUser()
         .catch(err => { console.error('[Retirement] getUser error:', err); return null; }),
-    ]).then(([positions, transactions, liabilities, user]) => {
+    ]).then(([positions, transactions, liabilities, assets, user]) => {
       console.log('[Retirement] data received —',
         'positions:', positions?.length,
         'transactions:', transactions?.length,
         'liabilities:', liabilities?.length,
+        'assets:', assets?.length,
         'user:', user?.birthday);
       state.positions    = positions    || [];
       state.transactions = transactions || [];
       state.liabilities  = liabilities  || [];
+      state.assets       = assets       || [];
       state.user = user;
       // Auto-fill current age from Wealthica birthday
       if (user && user.birthday) {
@@ -184,6 +194,7 @@ if (typeof Addon === 'undefined' || !_inWealthicaFrame) {
     const currentAge = state.params.currentAge;
     const currentPortfolioValue = Retirement.sumPortfolio(state.positions);
     const totalLiabilities = Retirement.sumLiabilities(state.liabilities);
+    const totalAssets = Retirement.sumPortfolio(state.assets);
 
     const p = state.params;
     const inflationRate = document.getElementById('inflation-toggle')?.checked ? 0.02 : 0;
@@ -284,7 +295,7 @@ if (typeof Addon === 'undefined' || !_inWealthicaFrame) {
     Charts.renderMonteCarlo(mcResult);
     Charts.renderIncomeSources(incomeSources);
     Charts.renderWithdrawalRate(withdrawalRates);
-    Charts.renderNetWorth(projection, totalLiabilities);
+    Charts.renderNetWorth(projection, totalLiabilities, totalAssets);
   }
 
   // ── Runway Chart (with sensitivity overrides) ────────────────────────────────

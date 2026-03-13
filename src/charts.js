@@ -633,7 +633,7 @@ const Charts = (() => {
   }
 
   // ── Chart 7: Net Worth Over Time ────────────────────────────────────────────
-  function renderNetWorth(projection, totalLiabilities) {
+  function renderNetWorth(projection, totalLiabilities, totalAssets) {
     destroyIfExists('net-worth');
     const ctx = document.getElementById('chart-net-worth');
     if (!ctx) return;
@@ -644,38 +644,59 @@ const Charts = (() => {
       return Math.max(0, Math.round(totalLiabilities * Math.pow(1 - paydownRate, i)));
     });
 
-    const netWorthData = projection.map((d, i) => Math.max(0, d.value - liabData[i]));
+    // Other assets (house, car) held flat at current value
+    const assetsValue = totalAssets || 0;
+    const assetsData = projection.map(() => assetsValue);
+
+    const netWorthData = projection.map((d, i) =>
+      Math.max(0, d.value + assetsValue - liabData[i])
+    );
+
+    const datasets = [
+      {
+        label: 'Investment Portfolio',
+        data: projection.map(d => d.value),
+        borderColor: COLORS.blue,
+        backgroundColor: COLORS.blueLight,
+        fill: true,
+        tension: 0.3, borderWidth: 2,
+      },
+      {
+        label: 'Liabilities',
+        data: liabData,
+        borderColor: COLORS.red,
+        backgroundColor: COLORS.redLight,
+        fill: true,
+        tension: 0.3, borderWidth: 2,
+      },
+      {
+        label: 'Net Worth',
+        data: netWorthData,
+        borderColor: COLORS.green,
+        backgroundColor: 'transparent',
+        fill: false,
+        tension: 0.3, borderWidth: 2.5,
+      },
+    ];
+
+    if (assetsValue > 0) {
+      datasets.splice(1, 0, {
+        label: 'Other Assets',
+        data: assetsData,
+        borderColor: COLORS.amber,
+        backgroundColor: 'transparent',
+        fill: false,
+        tension: 0, borderWidth: 2,
+        borderDash: [6, 3],
+        pointRadius: 0,
+      });
+    }
 
     instances['net-worth'] = new Chart(ctx, {
       type: 'line',
       data: {
         labels: projection.map(d => d.year),
-        datasets: [
-          {
-            label: 'Investment Portfolio',
-            data: projection.map(d => d.value),
-            borderColor: COLORS.blue,
-            backgroundColor: COLORS.blueLight,
-            fill: true,
-            tension: 0.3, borderWidth: 2,
-          },
-          {
-            label: 'Liabilities',
-            data: liabData,
-            borderColor: COLORS.red,
-            backgroundColor: COLORS.redLight,
-            fill: true,
-            tension: 0.3, borderWidth: 2,
-          },
-          {
-            label: 'Net Worth',
-            data: netWorthData,
-            borderColor: COLORS.green,
-            backgroundColor: 'transparent',
-            fill: false,
-            tension: 0.3, borderWidth: 2.5,
-          }
-        ]
+        datasets,
       },
       options: getBaseOptions()
     });
