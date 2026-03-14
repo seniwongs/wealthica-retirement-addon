@@ -108,6 +108,17 @@ if (typeof Addon === 'undefined' || !_inWealthicaFrame) {
   let _ignoringNextUpdate = false;
   let _fetchGen = 0;
   let _suppressUpdateUntil = 0;
+  let _lastFetchedFilterKey = null;
+
+  function getFilterKey(options) {
+    const groups       = toApiParam(options.groupsFilter       || options.groups);
+    const institutions = toApiParam(options.institutionsFilter || options.institutions);
+    const dateRange    = options.dateRangeFilter;
+    const fromDate     = (dateRange && dateRange[0]) || options.fromDate;
+    const toDate       = (dateRange && dateRange[1]) || options.toDate;
+    return JSON.stringify({ groups, institutions, fromDate, toDate });
+  }
+
   addon.on('update', function (options) {
     console.log('[Retirement] update', options);
     if (_ignoringNextUpdate) {
@@ -117,6 +128,13 @@ if (typeof Addon === 'undefined' || !_inWealthicaFrame) {
     if (Date.now() < _suppressUpdateUntil) {
       console.log('[Retirement] update suppressed (post-init window)');
       state.wealthicaOptions = options; // still capture latest options
+      return;
+    }
+    // Only re-fetch if the effective filter params actually changed
+    const newKey = getFilterKey(options);
+    if (newKey === _lastFetchedFilterKey) {
+      console.log('[Retirement] update ignored — filter unchanged');
+      state.wealthicaOptions = options; // still capture options
       return;
     }
     state.wealthicaOptions = options;
@@ -137,6 +155,7 @@ if (typeof Addon === 'undefined' || !_inWealthicaFrame) {
   function toApiParam(val) {
     if (!val) return undefined;
     if (Array.isArray(val)) {
+      if (val.length === 0) return undefined;
       // Institution/group entries may be objects with _id or plain strings
       return val.map(item => (item && typeof item === 'object' ? item._id : item)).join(',');
     }
@@ -146,6 +165,7 @@ if (typeof Addon === 'undefined' || !_inWealthicaFrame) {
   function fetchAllData(options) {
     showLoading(true);
     const myGen = ++_fetchGen; // snapshot this fetch's generation
+    _lastFetchedFilterKey = getFilterKey(options);
 
     // SDK options use xFilter field names; API calls use groups/institutions/fromDate/toDate.
     // Support both the real SDK format (xFilter) and any legacy direct fields.
@@ -214,7 +234,8 @@ if (typeof Addon === 'undefined' || !_inWealthicaFrame) {
     console.log('[Retirement] renderAll — portfolio:', currentPortfolioValue,
       'positions count:', state.positions.length,
       'lifeExpectancy:', state.params.lifeExpectancy,
-      'fetchGen:', _fetchGen);
+      'fetchGen:', _fetchGen,
+      'filterKey:', _lastFetchedFilterKey);
     const totalLiabilities = Retirement.sumLiabilities(state.liabilities);
     const totalAssets = Retirement.sumPortfolio(state.assets);
 
