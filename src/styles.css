@@ -209,6 +209,7 @@ body {
   flex-direction: column;
   align-items: center;
   gap: 4px;
+  cursor: help;
 }
 
 .mc-circle-container {
@@ -536,6 +537,14 @@ body {
   transition: opacity 0.15s ease;
 }
 #tip.visible { opacity: 1; }
+
+/* ── MC Ring Tooltip ─────────────────────────────────────────────────────────── */
+.mc-tip-title  { font-weight: 600; font-size: 0.85rem; margin-bottom: 4px; }
+.mc-tip-sub    { font-size: 0.72rem; opacity: 0.7; margin-bottom: 8px; }
+.mc-tip-row    { display: flex; justify-content: space-between; font-size: 0.78rem;
+                 padding: 2px 0; border-bottom: 1px solid rgba(255,255,255,0.07); }
+.mc-tip-row:last-of-type { border-bottom: none; }
+.mc-tip-hint   { font-size: 0.73rem; opacity: 0.85; margin-top: 8px; line-height: 1.4; }
 
 /* ── Footer ──────────────────────────────────────────────────────────────────── */
 #app-footer {

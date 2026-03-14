@@ -89,6 +89,9 @@ if (typeof Addon === 'undefined' || !_inWealthicaFrame) {
   // Sensitivity overrides for the Runway chart (null = use base params)
   const runwaySensitivity = { returnRate: null, inflationRate: null };
 
+  // Latest Monte Carlo result — populated in renderAll(), used by initMcTooltip()
+  let _lastMcResult = null;
+
   // ── Wealthica SDK ────────────────────────────────────────────────────────────
   const addon = new Addon();
 
@@ -284,6 +287,7 @@ if (typeof Addon === 'undefined' || !_inWealthicaFrame) {
       : rawProjection;
     const retirementYear = currentYear + (p.retirementAge - currentAge);
     const mcResult = Retirement.monteCarlo(calcParams, 500);
+    _lastMcResult = { ...mcResult, params: calcParams };
     const withdrawalRates = Retirement.calcWithdrawalRates(projection, calcParams);
     const incomeSources = Retirement.buildIncomeSources(calcParams);
 
@@ -534,6 +538,7 @@ if (typeof Addon === 'undefined' || !_inWealthicaFrame) {
     initControls();
     initTabs();
     initTooltips();
+    initMcTooltip();
     initRunwaySensitivity();
     syncControlsToState();
     document.getElementById('inflation-toggle')?.addEventListener('change', () => renderAll());
@@ -570,6 +575,62 @@ if (typeof Addon === 'undefined' || !_inWealthicaFrame) {
 
     document.addEventListener('mouseout', e => {
       if (e.target.closest('[data-tooltip]')) tip.classList.remove('visible');
+    });
+  }
+
+  function initMcTooltip() {
+    const wrap = document.querySelector('.mc-circle-wrap');
+    const tip  = document.getElementById('tip');
+    if (!wrap || !tip) return;
+
+    wrap.addEventListener('mouseenter', () => {
+      if (!_lastMcResult) return;
+      const { successRate, percentiles } = _lastMcResult;
+
+      const tier =
+        successRate >= 90 ? '✅ Very Strong' :
+        successRate >= 80 ? '✅ Strong' :
+        successRate >= 60 ? '⚠️ Moderate' : '❌ At Risk';
+
+      const suggestion =
+        successRate >= 90 ? 'On track. Consider a slightly lower return assumption for conservatism.' :
+        successRate >= 80 ? 'Small increases in savings or a slightly higher return add meaningful buffer.' :
+        successRate >= 60 ? 'Try saving more each month, reducing expenses, or delaying retirement 1–2 years.' :
+                            'High risk of running out. Reduce expenses, retire later, or increase savings rate significantly.';
+
+      const fmt = v => v == null ? '—' : '$' + Math.round(v).toLocaleString();
+
+      const lastIdx = percentiles.p50.length - 1;
+      const p50 = fmt(percentiles.p50[lastIdx]?.value);
+      const p10 = fmt(percentiles.p10[lastIdx]?.value);
+      const p90 = fmt(percentiles.p90[lastIdx]?.value);
+
+      tip.innerHTML = `
+        <div class="mc-tip-title">${tier} &nbsp;·&nbsp; ${successRate}%</div>
+        <div class="mc-tip-sub">500 simulations · portfolio never depleted = success</div>
+        <div class="mc-tip-row"><span>Median (p50)</span><span>${p50}</span></div>
+        <div class="mc-tip-row"><span>Best 10% (p90)</span><span>${p90}</span></div>
+        <div class="mc-tip-row"><span>Worst 10% (p10)</span><span>${p10}</span></div>
+        <div class="mc-tip-hint">💡 ${suggestion}</div>
+      `;
+      tip.style.width = '260px';
+      tip.classList.add('visible');
+
+      const rect = wrap.getBoundingClientRect();
+      let left = rect.left + rect.width / 2 - 130;
+      left = Math.max(8, Math.min(left, window.innerWidth - 268));
+      tip.style.left = left + 'px';
+      if (rect.top > 70) {
+        tip.style.top = '';
+        tip.style.bottom = (window.innerHeight - rect.top + 8) + 'px';
+      } else {
+        tip.style.bottom = '';
+        tip.style.top = (rect.bottom + 8) + 'px';
+      }
+    });
+
+    wrap.addEventListener('mouseleave', () => {
+      tip.classList.remove('visible');
     });
   }
 
