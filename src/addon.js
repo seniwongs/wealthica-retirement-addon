@@ -620,13 +620,8 @@ if (typeof Addon === 'undefined' || !_inWealthicaFrame) {
       let left = rect.left + rect.width / 2 - 130;
       left = Math.max(8, Math.min(left, window.innerWidth - 268));
       tip.style.left = left + 'px';
-      if (rect.top > 70) {
-        tip.style.top = '';
-        tip.style.bottom = (window.innerHeight - rect.top + 8) + 'px';
-      } else {
-        tip.style.bottom = '';
-        tip.style.top = (rect.bottom + 8) + 'px';
-      }
+      tip.style.bottom = '';
+      tip.style.top = (rect.bottom + 8) + 'px';
     });
 
     wrap.addEventListener('mouseleave', () => {
