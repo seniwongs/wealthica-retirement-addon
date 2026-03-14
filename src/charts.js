@@ -591,6 +591,19 @@ const Charts = (() => {
           c.fillText(fmt(value), bar.x, bar.y - 4);
           c.restore();
         });
+        // "4%" label at the right edge of the reference line
+        const yScale = chart.scales.y;
+        const xScale = chart.scales.x;
+        if (!yScale || !xScale) return;
+        const yPx = yScale.getPixelForValue(SAFE_RATE);
+        const xPx = xScale.right + 4;
+        c.save();
+        c.font = 'bold 10px sans-serif';
+        c.fillStyle = COLORS.amber;
+        c.textAlign = 'left';
+        c.textBaseline = 'middle';
+        c.fillText('4%', xPx, yPx);
+        c.restore();
       }
     };
 
@@ -612,9 +625,9 @@ const Charts = (() => {
             label: `${SAFE_RATE}% Safe Withdrawal Rate`,
             data: safeLine,
             type: 'line',
-            borderColor: COLORS.gray,
+            borderColor: COLORS.amber,
             borderDash: [6, 3],
-            borderWidth: 1.5,
+            borderWidth: 2,
             pointRadius: 0,
             fill: false,
             yAxisID: 'y',

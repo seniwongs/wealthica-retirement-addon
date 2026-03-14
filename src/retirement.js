@@ -281,7 +281,13 @@ const Retirement = (() => {
     if (!userData || !userData.birthday) return 40;
     const birth = new Date(userData.birthday);
     const today = new Date();
-    return today.getFullYear() - birth.getFullYear();
+    let age = today.getFullYear() - birth.getFullYear();
+    // Subtract 1 if birthday hasn't occurred yet this year
+    const hadBirthday =
+      today.getMonth() > birth.getMonth() ||
+      (today.getMonth() === birth.getMonth() && today.getDate() >= birth.getDate());
+    if (!hadBirthday) age -= 1;
+    return age;
   }
 
   /**

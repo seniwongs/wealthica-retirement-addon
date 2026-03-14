@@ -101,15 +101,23 @@ if (typeof Addon === 'undefined' || !_inWealthicaFrame) {
       clampParams(state.params);
       syncControlsToState();
     }
+    _suppressUpdateUntil = Date.now() + 2000;
     fetchAllData(options);
   });
 
   let _ignoringNextUpdate = false;
+  let _fetchGen = 0;
+  let _suppressUpdateUntil = 0;
   addon.on('update', function (options) {
     console.log('[Retirement] update', options);
     if (_ignoringNextUpdate) {
       _ignoringNextUpdate = false;
       return; // echo from our own saveData — filter unchanged, no re-fetch needed
+    }
+    if (Date.now() < _suppressUpdateUntil) {
+      console.log('[Retirement] update suppressed (post-init window)');
+      state.wealthicaOptions = options; // still capture latest options
+      return;
     }
     state.wealthicaOptions = options;
     fetchAllData(options);
@@ -137,6 +145,7 @@ if (typeof Addon === 'undefined' || !_inWealthicaFrame) {
 
   function fetchAllData(options) {
     showLoading(true);
+    const myGen = ++_fetchGen; // snapshot this fetch's generation
 
     // SDK options use xFilter field names; API calls use groups/institutions/fromDate/toDate.
     // Support both the real SDK format (xFilter) and any legacy direct fields.
@@ -170,6 +179,7 @@ if (typeof Addon === 'undefined' || !_inWealthicaFrame) {
       addon.api.getUser()
         .catch(err => { console.error('[Retirement] getUser error:', err); return null; }),
     ]).then(([positions, transactions, liabilities, assets, user]) => {
+      if (myGen !== _fetchGen) return; // stale — a newer fetch supersedes this one
       console.log('[Retirement] data received —',
         'positions:', positions?.length,
         'transactions:', transactions?.length,
@@ -190,6 +200,7 @@ if (typeof Addon === 'undefined' || !_inWealthicaFrame) {
       showLoading(false);
       renderAll();
     }).catch(err => {
+      if (myGen !== _fetchGen) return;
       console.error('[Retirement] unexpected fetch error:', err);
       showLoading(false);
     });
@@ -200,6 +211,10 @@ if (typeof Addon === 'undefined' || !_inWealthicaFrame) {
     const currentYear = new Date().getFullYear();
     const currentAge = state.params.currentAge;
     const currentPortfolioValue = Retirement.sumPortfolio(state.positions);
+    console.log('[Retirement] renderAll — portfolio:', currentPortfolioValue,
+      'positions count:', state.positions.length,
+      'lifeExpectancy:', state.params.lifeExpectancy,
+      'fetchGen:', _fetchGen);
     const totalLiabilities = Retirement.sumLiabilities(state.liabilities);
     const totalAssets = Retirement.sumPortfolio(state.assets);
 
