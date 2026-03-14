@@ -7,7 +7,7 @@
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📈</text></svg>" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@wealthica/wealthica.js/dist/addon.min.js"></script>
-  <link rel="stylesheet" href="src/styles.css?v=41" />
+  <link rel="stylesheet" href="src/styles.css?v=42" />
 </head>
 <body>
   <div id="app">
@@ -54,8 +54,8 @@
           <div class="control-group">
             <label for="extra-income" data-tooltip="Non-portfolio retirement income (part-time work, rental, etc.). Reduces monthly withdrawals, extending your runway.">Extra Income ($/mo)</label>
             <div class="control-track">
-              <input type="number" id="extra-income-val"      min="0"      max="5000"    value="0"        step="100" />
-              <input type="range"  id="extra-income"          min="0"      max="5000"    value="0"        step="100" />
+              <input type="number" id="extra-income-val"      min="0"      max="20000"   value="0"        step="100" />
+              <input type="range"  id="extra-income"          min="0"      max="20000"   value="0"        step="100" />
             </div>
           </div>
 
@@ -240,11 +240,11 @@
         </div>
       </div>
     </div>
-    <footer id="app-footer">v41</footer>
+    <footer id="app-footer">v42</footer>
   </div>
 
-  <script src="src/retirement.js?v=41"></script>
-  <script src="src/charts.js?v=41"></script>
-  <script src="src/addon.js?v=41"></script>
+  <script src="src/retirement.js?v=42"></script>
+  <script src="src/charts.js?v=42"></script>
+  <script src="src/addon.js?v=42"></script>
 </body>
 </html>
