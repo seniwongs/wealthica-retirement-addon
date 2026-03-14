@@ -307,8 +307,16 @@ if (typeof Addon === 'undefined' || !_inWealthicaFrame) {
     const projectedAtRetirement = retirementPoint ? retirementPoint.value : 0;
     const surplus = projectedAtRetirement - p.targetAmount;
 
+    const twelveMonthsAgo = new Date();
+    twelveMonthsAgo.setMonth(twelveMonthsAgo.getMonth() - 12);
+    const last12Contributions = (state.transactions || [])
+      .filter(tx => tx.amount > 0 && new Date(tx.date) >= twelveMonthsAgo)
+      .reduce((sum, tx) => sum + tx.amount, 0);
+    const avgMonthlySavings = last12Contributions / 12;
+
     setStatEl('stat-portfolio',     currentPortfolioValue);
     setStatEl('stat-contributed',   totalContributed);
+    setStatEl('stat-avg-savings',   avgMonthlySavings);
     setStatEl('stat-gains',         investmentGains, true);
     setStatEl('stat-at-retirement', projectedAtRetirement);
     setStatEl('stat-fire',          fireNumber);
