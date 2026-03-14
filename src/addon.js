@@ -130,6 +130,12 @@ if (typeof Addon === 'undefined' || !_inWealthicaFrame) {
       state.wealthicaOptions = options; // still capture latest options
       return;
     }
+    // Viewport-only update (browser resize) — no filter data, nothing to re-fetch
+    const FILTER_FIELDS = ['institutionsFilter','groupsFilter','dateRangeFilter','institutions','groups','fromDate','toDate'];
+    if (!FILTER_FIELDS.some(k => k in options)) {
+      console.log('[Retirement] update ignored — viewport only');
+      return; // do NOT overwrite state.wealthicaOptions — preserve init filter for reload
+    }
     // Only re-fetch if the effective filter params actually changed
     const newKey = getFilterKey(options);
     if (newKey === _lastFetchedFilterKey) {
