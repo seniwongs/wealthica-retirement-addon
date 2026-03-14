@@ -20,7 +20,7 @@
         <div class="controls-row">
 
           <div class="control-group">
-            <label for="current-age">Current Age</label>
+            <label for="current-age" data-tooltip="Your age today. Sets your accumulation window — years left to grow your portfolio before retirement.">Current Age</label>
             <div class="control-track">
               <input type="number" id="current-age-val"       min="20"     max="70"      value="40"       step="1" />
               <input type="range"  id="current-age"           min="20"     max="70"      value="40"       step="1" />
@@ -28,7 +28,7 @@
           </div>
 
           <div class="control-group">
-            <label for="retirement-age">Retire Age</label>
+            <label for="retirement-age" data-tooltip="Target retirement age. Delaying retirement extends investing time and reduces years your portfolio must fund.">Retire Age</label>
             <div class="control-track">
               <input type="number" id="retirement-age-val"    min="50"     max="75"      value="65"       step="1" />
               <input type="range"  id="retirement-age"        min="50"     max="75"      value="65"       step="1" />
@@ -36,7 +36,7 @@
           </div>
 
           <div class="control-group">
-            <label for="target-amount">Target Nest Egg ($)</label>
+            <label for="target-amount" data-tooltip="The total portfolio value you aim to reach at retirement. Drives the savings gap and monthly savings target.">Target Nest Egg ($)</label>
             <div class="control-track">
               <input type="text"   id="target-amount-val"     value="1,000,000" />
               <input type="range"  id="target-amount"         min="250000" max="5000000" value="1000000"  step="50000" />
@@ -44,7 +44,7 @@
           </div>
 
           <div class="control-group">
-            <label for="return-rate">Expected Return (%/yr)</label>
+            <label for="return-rate" data-tooltip="Assumed annual portfolio growth rate. Canadian diversified portfolios have historically averaged 6–8%. Higher return = higher risk.">Expected Return (%/yr)</label>
             <div class="control-track">
               <input type="number" id="return-rate-val"       min="1"      max="12"      value="6"        step="0.5" />
               <input type="range"  id="return-rate"           min="1"      max="12"      value="6"        step="0.5" />
@@ -52,7 +52,7 @@
           </div>
 
           <div class="control-group">
-            <label for="extra-income">Extra Income ($/mo)</label>
+            <label for="extra-income" data-tooltip="Non-portfolio retirement income (part-time work, rental, etc.). Reduces monthly withdrawals, extending your runway.">Extra Income ($/mo)</label>
             <div class="control-track">
               <input type="number" id="extra-income-val"      min="0"      max="5000"    value="0"        step="100" />
               <input type="range"  id="extra-income"          min="0"      max="5000"    value="0"        step="100" />
@@ -65,7 +65,7 @@
         <div class="controls-row">
 
           <div class="control-group">
-            <label for="expenses">Monthly Expenses ($)</label>
+            <label for="expenses" data-tooltip="Expected monthly spending in retirement. The primary driver of how much portfolio you need to sustain.">Monthly Expenses ($)</label>
             <div class="control-track">
               <input type="text"   id="expenses-val"          value="3,000" />
               <input type="range"  id="expenses"              min="500"    max="15000"   value="3000"     step="100" />
@@ -73,7 +73,7 @@
           </div>
 
           <div class="control-group">
-            <label for="cpp-monthly">CPP ($/mo)</label>
+            <label for="cpp-monthly" data-tooltip="Canada Pension Plan benefit. Starts at 65 (avg ~$800/mo, max ~$1,300/mo in 2024). Reduces required withdrawals from age 65.">CPP ($/mo)</label>
             <div class="control-track">
               <input type="number" id="cpp-monthly-val"       min="0"      max="1400"    value="800"      step="50" />
               <input type="range"  id="cpp-monthly"           min="0"      max="1400"    value="800"      step="50" />
@@ -81,7 +81,7 @@
           </div>
 
           <div class="control-group">
-            <label for="oas-monthly">OAS ($/mo)</label>
+            <label for="oas-monthly" data-tooltip="Old Age Security benefit. Starts at 65 (max ~$700/mo in 2024). Supplements CPP and reduces portfolio drawdown.">OAS ($/mo)</label>
             <div class="control-track">
               <input type="number" id="oas-monthly-val"       min="0"      max="800"     value="700"      step="25" />
               <input type="range"  id="oas-monthly"           min="0"      max="800"     value="700"      step="25" />
@@ -89,7 +89,7 @@
           </div>
 
           <div class="control-group control-group--select">
-            <label for="life-expectancy">Life Expectancy</label>
+            <label for="life-expectancy" data-tooltip="Planning horizon. A longer expectancy requires a larger nest egg to avoid outliving your savings.">Life Expectancy</label>
             <select id="life-expectancy"></select>
           </div>
 
