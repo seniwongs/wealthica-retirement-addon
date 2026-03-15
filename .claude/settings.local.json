@@ -6,7 +6,24 @@
       "WebSearch",
       "WebFetch(domain:wealthica.com)",
       "WebFetch(domain:raw.githubusercontent.com)",
-      "WebFetch(domain:coffee-monk.github.io)"
+      "WebFetch(domain:coffee-monk.github.io)",
+      "Bash(gh repo:*)",
+      "Bash(curl:*)",
+      "Bash(powershell.exe:*)",
+      "Bash(xargs ls:*)",
+      "Read(//c/Users/kanaw/AppData/Roaming/npm/**)",
+      "Read(//c/Users/kanaw/**)",
+      "WebFetch(domain:cdn.jsdelivr.net)",
+      "WebFetch(domain:api.github.com)",
+      "WebFetch(domain:api.wealthica.com)",
+      "Bash(git add:*)",
+      "Bash(git push:*)",
+      "Bash(cmd.exe /c \"dir D:\\\\screenshots\\\\\")",
+      "Bash(cmd.exe /c dir D:\\\\screenshots)",
+      "Bash(powershell -Command \"Get-ChildItem C:\\\\Users\\\\kanaw\\\\Desktop -Filter '*.png' | Select-Object -First 10\")",
+      "Bash(cd \"D:/Repo/Wealthica/Retirement\" && sed -i 's/styles\\\\.css?v=36/styles.css?v=37/g; s/retirement\\\\.js?v=36/retirement.js?v=37/g; s/charts\\\\.js?v=36/charts.js?v=37/g; s/addon\\\\.js?v=36/addon.js?v=37/g; s|<footer id=\"app-footer\">v36</footer>|<footer id=\"app-footer\">v37</footer>|g' index.html)",
+      "Bash(ls /d/screenshots/ 2>/dev/null || ls ~/Desktop/*.png 2>/dev/null || find /c/Users/kanaw -name \"*.png\" -newer /c/Users/kanaw/AppData/Local/Temp -maxdepth 4 2>/dev/null | head -20)",
+      "Bash(cd D:/Repo/Wealthica/Retirement && sed -i 's/?v=44/?v=45/g' index.html && sed -i 's/>v44</>v45</g' index.html)"
     ]
   }
 }

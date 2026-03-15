@@ -12,7 +12,6 @@ const _inWealthicaFrame = (function () {
 })();
 
 if (typeof Addon === 'undefined' || !_inWealthicaFrame) {
-  console.warn('[RetirementAddon] Running in demo mode (not inside Wealthica iframe)');
   window.Addon = function () {
     this._handlers = {};
     const self = this;
@@ -96,7 +95,6 @@ if (typeof Addon === 'undefined' || !_inWealthicaFrame) {
   const addon = new Addon();
 
   addon.on('init', function (options) {
-    console.log('[Retirement] init', options);
     state.wealthicaOptions = options;
     // Restore saved params if any, then clamp to valid ranges
     if (options.data && options.data.params) {
@@ -123,26 +121,22 @@ if (typeof Addon === 'undefined' || !_inWealthicaFrame) {
   }
 
   addon.on('update', function (options) {
-    console.log('[Retirement] update', options);
     if (_ignoringNextUpdate) {
       _ignoringNextUpdate = false;
       return; // echo from our own saveData — filter unchanged, no re-fetch needed
     }
     if (Date.now() < _suppressUpdateUntil) {
-      console.log('[Retirement] update suppressed (post-init window)');
       state.wealthicaOptions = options; // still capture latest options
       return;
     }
     // Viewport-only update (browser resize) — no filter data, nothing to re-fetch
     const FILTER_FIELDS = ['institutionsFilter','groupsFilter','dateRangeFilter','institutions','groups','fromDate','toDate'];
     if (!FILTER_FIELDS.some(k => k in options)) {
-      console.log('[Retirement] update ignored — viewport only');
       return; // do NOT overwrite state.wealthicaOptions — preserve init filter for reload
     }
     // Only re-fetch if the effective filter params actually changed
     const newKey = getFilterKey(options);
     if (newKey === _lastFetchedFilterKey) {
-      console.log('[Retirement] update ignored — filter unchanged');
       state.wealthicaOptions = options; // still capture options
       return;
     }
@@ -209,17 +203,18 @@ if (typeof Addon === 'undefined' || !_inWealthicaFrame) {
         .catch(err => { console.error('[Retirement] getUser error:', err); return null; }),
     ]).then(([positions, transactions, liabilities, assets, user]) => {
       if (myGen !== _fetchGen) return; // stale — a newer fetch supersedes this one
-      console.log('[Retirement] data received —',
-        'positions:', positions?.length,
-        'transactions:', transactions?.length,
-        'liabilities:', liabilities?.length, liabilities?.[0],
-        'assets:', assets?.length, assets?.[0],
-        'user:', user?.birthday);
       state.positions    = positions    || [];
       state.transactions = transactions || [];
       state.liabilities  = liabilities  || [];
       state.assets       = assets       || [];
       state.user = user;
+      // Show error state if all major API responses are empty
+      if (state.positions.length === 0 && state.transactions.length === 0 && user === null) {
+        showLoading(false);
+        showFetchError(true);
+        return;
+      }
+      showFetchError(false);
       // Auto-fill current age from Wealthica birthday
       if (user && user.birthday) {
         const age = Retirement.estimateCurrentAge(user);
@@ -240,11 +235,6 @@ if (typeof Addon === 'undefined' || !_inWealthicaFrame) {
     const currentYear = new Date().getFullYear();
     const currentAge = state.params.currentAge;
     const currentPortfolioValue = Retirement.sumPortfolio(state.positions);
-    console.log('[Retirement] renderAll — portfolio:', currentPortfolioValue,
-      'positions count:', state.positions.length,
-      'lifeExpectancy:', state.params.lifeExpectancy,
-      'fetchGen:', _fetchGen,
-      'filterKey:', _lastFetchedFilterKey);
     const totalLiabilities = Retirement.sumLiabilities(state.liabilities);
     const totalAssets = Retirement.sumPortfolio(state.assets);
 
@@ -459,6 +449,29 @@ if (typeof Addon === 'undefined' || !_inWealthicaFrame) {
     });
   }
 
+  // Cross-clamp currentAge and retirementAge so retirement age is always > current age.
+  function crossClampAges(changedKey) {
+    if (changedKey === 'currentAge') {
+      const minRetire = state.params.currentAge + 1;
+      if (state.params.retirementAge < minRetire) {
+        state.params.retirementAge = minRetire;
+        const retEl = document.getElementById('retirement-age');
+        const retNum = document.getElementById('retirement-age-val');
+        if (retEl) retEl.value = minRetire;
+        if (retNum) retNum.value = minRetire;
+      }
+    } else if (changedKey === 'retirementAge') {
+      const maxCurrent = state.params.retirementAge - 1;
+      if (state.params.currentAge > maxCurrent) {
+        state.params.currentAge = maxCurrent;
+        const curEl = document.getElementById('current-age');
+        const curNum = document.getElementById('current-age-val');
+        if (curEl) curEl.value = maxCurrent;
+        if (curNum) curNum.value = maxCurrent;
+      }
+    }
+  }
+
   let debounceTimer = null;
   function debounceRender() {
     clearTimeout(debounceTimer);
@@ -494,6 +507,7 @@ if (typeof Addon === 'undefined' || !_inWealthicaFrame) {
       // Range slider moved → update number input + state
       el.addEventListener('input', () => {
         state.params[def.stateKey] = def.stateValue(el.value);
+        crossClampAges(def.stateKey);
         const v = def.displayValue(state.params);
         if (numInput) numInput.value = def.formatDisplay ? def.formatDisplay(v) : v;
         debounceRender();
@@ -507,6 +521,7 @@ if (typeof Addon === 'undefined' || !_inWealthicaFrame) {
           numInput.value = def.formatDisplay ? def.formatDisplay(clamped) : clamped;
           el.value = clamped;
           state.params[def.stateKey] = def.stateValue(clamped);
+          crossClampAges(def.stateKey);
           debounceRender();
         });
       }
@@ -518,9 +533,13 @@ if (typeof Addon === 'undefined' || !_inWealthicaFrame) {
     document.querySelectorAll('.tab').forEach(tab => {
       tab.addEventListener('click', () => {
         const target = tab.dataset.tab;
-        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.tab').forEach(t => {
+          t.classList.remove('active');
+          t.setAttribute('aria-selected', 'false');
+        });
         document.querySelectorAll('.chart-panel').forEach(p => p.classList.remove('active'));
         tab.classList.add('active');
+        tab.setAttribute('aria-selected', 'true');
         document.getElementById('panel-' + target)?.classList.add('active');
       });
     });
@@ -529,6 +548,11 @@ if (typeof Addon === 'undefined' || !_inWealthicaFrame) {
   // ── Loading State ─────────────────────────────────────────────────────────────
   function showLoading(visible) {
     const el = document.getElementById('loading');
+    if (el) el.classList.toggle('hidden', !visible);
+  }
+
+  function showFetchError(visible) {
+    const el = document.getElementById('fetch-error-banner');
     if (el) el.classList.toggle('hidden', !visible);
   }
 

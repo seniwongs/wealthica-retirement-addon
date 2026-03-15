@@ -7,7 +7,7 @@
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📈</text></svg>" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@wealthica/wealthica.js/dist/addon.min.js"></script>
-  <link rel="stylesheet" href="src/styles.css?v=45" />
+  <link rel="stylesheet" href="src/styles.css?v=46" />
 </head>
 <body>
   <div id="app">
@@ -107,7 +107,8 @@
 
         <div class="mc-circle-wrap">
           <div class="mc-circle-container">
-            <svg class="mc-ring" viewBox="0 0 80 80">
+            <svg class="mc-ring" viewBox="0 0 80 80" role="img" aria-labelledby="mc-ring-title">
+              <title id="mc-ring-title">Monte Carlo Success Rate</title>
               <circle class="mc-ring-bg" cx="40" cy="40" r="32" />
               <circle class="mc-ring-fg" cx="40" cy="40" r="32" id="mc-ring-arc" />
             </svg>
@@ -118,11 +119,11 @@
           <span class="mc-circle-label">Monte Carlo Success</span>
         </div>
 
-        <label class="inflation-toggle">
+        <label class="inflation-toggle" for="inflation-toggle">
           <input type="checkbox" id="inflation-toggle" />
           <span>Inflation (2%)</span>
         </label>
-        <button id="theme-toggle" class="theme-btn">☀️ Light</button>
+        <button id="theme-toggle" class="theme-btn" aria-label="Toggle light/dark theme">☀️ Light</button>
       </div>
 
     </div><!-- /controls-panel -->
@@ -132,6 +133,11 @@
       <div id="loading" class="loading-overlay">
         <div class="spinner"></div>
         <p>Loading your financial data…</p>
+      </div>
+
+      <!-- ── Fetch Error Banner ── -->
+      <div id="fetch-error-banner" class="fetch-error-banner hidden">
+        ⚠️ Unable to load portfolio data. Please try reloading.
       </div>
 
       <!-- ── On-Track Banner ── -->
@@ -152,7 +158,7 @@
           <span class="stat-value" id="stat-contributed">—</span>
         </div>
         <div class="stat-card">
-          <span class="stat-label" data-tooltip="Average monthly contributions to your investment accounts over the last 12 months">Avg Monthly Savings</span>
+          <span class="stat-label" data-tooltip="Average monthly contributions to your investment accounts over the last 12 months">Avg Mo. Savings</span>
           <span class="stat-value" id="stat-avg-savings">—</span>
         </div>
         <div class="stat-card gain">
@@ -172,19 +178,19 @@
           <span class="stat-value" id="stat-save-needed">—</span>
         </div>
         <div class="stat-card">
-          <span class="stat-label" data-tooltip="Estimated portfolio balance remaining at your life expectancy age">Projected Remaining</span>
+          <span class="stat-label" data-tooltip="Estimated portfolio balance remaining at your life expectancy age">Proj. Remaining</span>
           <span class="stat-value" id="stat-remaining">—</span>
         </div>
       </div>
 
-      <div id="tabs">
-        <button class="tab active" data-tab="portfolio-value">Portfolio Value</button>
-        <button class="tab" data-tab="contributions">Contributions</button>
-        <button class="tab" data-tab="runway">Runway</button>
-        <button class="tab" data-tab="monte-carlo">Monte Carlo</button>
-        <button class="tab" data-tab="income-sources">Income Sources</button>
-        <button class="tab" data-tab="withdrawal-rate">Withdrawal Rate</button>
-        <button class="tab" data-tab="net-worth">Net Worth</button>
+      <div id="tabs" role="tablist">
+        <button class="tab active" data-tab="portfolio-value" role="tab" aria-selected="true">Portfolio Value</button>
+        <button class="tab" data-tab="contributions" role="tab" aria-selected="false">Contributions</button>
+        <button class="tab" data-tab="runway" role="tab" aria-selected="false">Runway</button>
+        <button class="tab" data-tab="monte-carlo" role="tab" aria-selected="false">Monte Carlo</button>
+        <button class="tab" data-tab="income-sources" role="tab" aria-selected="false">Income Sources</button>
+        <button class="tab" data-tab="withdrawal-rate" role="tab" aria-selected="false">Withdrawal Rate</button>
+        <button class="tab" data-tab="net-worth" role="tab" aria-selected="false">Net Worth</button>
       </div>
 
       <div id="chart-panels">
@@ -240,11 +246,11 @@
         </div>
       </div>
     </div>
-    <footer id="app-footer">v45</footer>
+    <footer id="app-footer">v46</footer>
   </div>
 
-  <script src="src/retirement.js?v=45"></script>
-  <script src="src/charts.js?v=45"></script>
-  <script src="src/addon.js?v=45"></script>
+  <script src="src/retirement.js?v=46"></script>
+  <script src="src/charts.js?v=46"></script>
+  <script src="src/addon.js?v=46"></script>
 </body>
 </html>
