@@ -7,7 +7,7 @@
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📈</text></svg>" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@wealthica/wealthica.js/dist/addon.min.js"></script>
-  <link rel="stylesheet" href="src/styles.css?v=50" />
+  <link rel="stylesheet" href="src/styles.css?v=52" />
 </head>
 <body>
   <div id="app">
@@ -123,8 +123,6 @@
           <input type="checkbox" id="inflation-toggle" />
           <span>Inflation (2%)</span>
         </label>
-        <button id="theme-toggle" class="theme-btn" aria-label="Toggle light/dark theme">☀️ Light</button>
-        <button id="help-btn" class="theme-btn" aria-label="Open help">❓ Help</button>
       </div>
 
     </div><!-- /controls-panel -->
@@ -184,14 +182,20 @@
         </div>
       </div>
 
-      <div id="tabs" role="tablist">
-        <button class="tab active" data-tab="portfolio-value" role="tab" aria-selected="true">Portfolio Value</button>
-        <button class="tab" data-tab="contributions" role="tab" aria-selected="false">Contributions</button>
-        <button class="tab" data-tab="runway" role="tab" aria-selected="false">Runway</button>
-        <button class="tab" data-tab="monte-carlo" role="tab" aria-selected="false">Monte Carlo</button>
-        <button class="tab" data-tab="income-sources" role="tab" aria-selected="false">Income Sources</button>
-        <button class="tab" data-tab="withdrawal-rate" role="tab" aria-selected="false">Withdrawal Rate</button>
-        <button class="tab" data-tab="net-worth" role="tab" aria-selected="false">Net Worth</button>
+      <div id="tab-bar">
+        <div id="tabs" role="tablist">
+          <button class="tab active" data-tab="portfolio-value" role="tab" aria-selected="true">Portfolio Value</button>
+          <button class="tab" data-tab="contributions" role="tab" aria-selected="false">Contributions</button>
+          <button class="tab" data-tab="runway" role="tab" aria-selected="false">Runway</button>
+          <button class="tab" data-tab="monte-carlo" role="tab" aria-selected="false">Monte Carlo</button>
+          <button class="tab" data-tab="income-sources" role="tab" aria-selected="false">Income Sources</button>
+          <button class="tab" data-tab="withdrawal-rate" role="tab" aria-selected="false">Withdrawal Rate</button>
+          <button class="tab" data-tab="net-worth" role="tab" aria-selected="false">Net Worth</button>
+        </div>
+        <div class="tab-bar-actions">
+          <button id="theme-toggle" class="theme-btn" aria-label="Toggle light/dark theme">☀️ Light</button>
+          <button id="help-btn" class="theme-btn" aria-label="Open help">❓ Help</button>
+        </div>
       </div>
 
       <div id="chart-panels">
@@ -330,11 +334,11 @@
       </div>
     </div>
 
-    <footer id="app-footer">v50</footer>
+    <footer id="app-footer">v52</footer>
   </div>
 
-  <script src="src/retirement.js?v=50"></script>
-  <script src="src/charts.js?v=50"></script>
-  <script src="src/addon.js?v=50"></script>
+  <script src="src/retirement.js?v=52"></script>
+  <script src="src/charts.js?v=52"></script>
+  <script src="src/addon.js?v=52"></script>
 </body>
 </html>
