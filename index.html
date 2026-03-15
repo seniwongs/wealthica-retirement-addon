@@ -7,7 +7,7 @@
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📈</text></svg>" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@wealthica/wealthica.js/dist/addon.min.js"></script>
-  <link rel="stylesheet" href="src/styles.css?v=46" />
+  <link rel="stylesheet" href="src/styles.css?v=48" />
 </head>
 <body>
   <div id="app">
@@ -124,6 +124,7 @@
           <span>Inflation (2%)</span>
         </label>
         <button id="theme-toggle" class="theme-btn" aria-label="Toggle light/dark theme">☀️ Light</button>
+        <button id="help-btn" class="theme-btn" aria-label="Open help">❓ Help</button>
       </div>
 
     </div><!-- /controls-panel -->
@@ -246,11 +247,94 @@
         </div>
       </div>
     </div>
-    <footer id="app-footer">v46</footer>
+    <!-- ── Help Modal ── -->
+    <div id="help-modal" class="help-modal hidden" role="dialog" aria-modal="true" aria-labelledby="help-modal-title">
+      <div class="help-modal-card">
+        <div class="help-modal-header">
+          <span id="help-modal-title">Retirement Planner — Help</span>
+          <button class="help-close-btn" id="help-close-btn" aria-label="Close help">✕</button>
+        </div>
+        <div class="help-modal-body">
+
+          <!-- Section 1: Getting Started -->
+          <div class="help-section">
+            <h3>Getting Started</h3>
+            <ul>
+              <li>Connect your Wealthica accounts — your portfolio syncs automatically.</li>
+              <li>Use the sliders to set your age, retirement age, and assumptions.</li>
+              <li>Charts update in real time as you drag sliders.</li>
+              <li>Toggle <strong>Inflation (2%)</strong> to view projections in today's dollars.</li>
+              <li>Use the <strong>Runway</strong> chart sensitivity toggles to stress-test bear/bull scenarios.</li>
+            </ul>
+          </div>
+
+          <!-- Section 2: Controls Glossary -->
+          <div class="help-section">
+            <h3>Controls Glossary</h3>
+            <table class="help-table">
+              <thead>
+                <tr><th>Control</th><th>What it means</th><th>Suggested value</th></tr>
+              </thead>
+              <tbody>
+                <tr><td>Current Age</td><td>Your age today. Sets your accumulation window — years left to grow your portfolio before retirement.</td><td>Set accurately.</td></tr>
+                <tr><td>Retirement Age</td><td>Target retirement age. Delaying retirement extends investing time and reduces years your portfolio must fund.</td><td>60–67 typical.</td></tr>
+                <tr><td>Target Nest Egg</td><td>Portfolio value you want at retirement. Drives the savings gap and monthly savings target.</td><td>25× annual expenses (4% rule).</td></tr>
+                <tr><td>Expected Return</td><td>Assumed annual portfolio growth rate. Canadian diversified portfolios have historically averaged 6–8%.</td><td>5–7% for diversified Canadian portfolio.</td></tr>
+                <tr><td>Extra Monthly Income</td><td>Non-portfolio retirement income (rental, part-time work, etc.). Reduces monthly withdrawals, extending your runway.</td><td>0 if not applicable.</td></tr>
+                <tr><td>Monthly Expenses</td><td>Expected spending in retirement. The primary driver of how much portfolio you need to sustain.</td><td>Current spending minus work-related costs.</td></tr>
+                <tr><td>CPP ($/mo)</td><td>CPP benefit at 65. Reduces required withdrawals starting age 65.</td><td>$800 avg; check My Service Canada for your estimate.</td></tr>
+                <tr><td>OAS ($/mo)</td><td>Old Age Security benefit at 65. Supplements CPP and reduces portfolio drawdown.</td><td>$700 avg (2024 max ~$713).</td></tr>
+                <tr><td>Life Expectancy</td><td>Planning horizon end age. A longer expectancy requires a larger nest egg to avoid outliving your savings.</td><td>90 recommended for conservatism.</td></tr>
+                <tr><td>Inflation toggle</td><td>Shows projections in today's purchasing power by deflating all future values at 2%/yr.</td><td>Enable for realistic planning.</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Section 3: Chart Explanations -->
+          <div class="help-section">
+            <h3>Chart Explanations</h3>
+            <p><strong>Portfolio Value Over Time</strong> — Historical balance plus projected growth through accumulation and retirement phases.</p>
+            <p><strong>Contributions vs. Returns</strong> — Stacked bar showing how much wealth came from savings versus market gains.</p>
+            <p><strong>Retirement Runway</strong> — Portfolio balance from retirement to end-of-life. Green fill = surplus above safe withdrawal level; red fill = risk zone. Use sensitivity toggles to test bear/bull scenarios.</p>
+            <p><strong>Monte Carlo</strong> — 500 randomized simulations using your return assumption ± volatility. The success rate is how many scenarios ended with $0+ at life expectancy. ≥80% is generally considered healthy.</p>
+            <p><strong>Retirement Income Sources</strong> — Year-by-year retirement income: portfolio withdrawals, CPP, OAS, and extra income.</p>
+            <p><strong>Annual Withdrawal Rate</strong> — Your projected withdrawal rate vs. the 4% safe withdrawal rule benchmark.</p>
+            <p><strong>Net Worth Over Time</strong> — Total assets (portfolio + real estate/other) minus liabilities over time.</p>
+          </div>
+
+          <!-- Section 4: CPP / OAS Reference -->
+          <div class="help-section">
+            <h3>CPP / OAS Reference</h3>
+            <p class="help-sub-title">CPP — Canada Pension Plan</p>
+            <table class="help-table">
+              <tbody>
+                <tr><td>Max at 65 (2024)</td><td>~$1,365/mo</td></tr>
+                <tr><td>Early at 60</td><td>−36% (−0.6%/mo before 65)</td></tr>
+                <tr><td>Deferred to 70</td><td>+42% (+0.7%/mo after 65)</td></tr>
+                <tr><td>Your estimate</td><td>Log into <em>My Service Canada Account</em></td></tr>
+              </tbody>
+            </table>
+            <p class="help-sub-title">OAS — Old Age Security</p>
+            <table class="help-table">
+              <tbody>
+                <tr><td>Max at 65 (2024 Q1)</td><td>~$713/mo</td></tr>
+                <tr><td>Deferred to 70</td><td>+36% (+0.6%/mo after 65)</td></tr>
+                <tr><td>Clawback begins</td><td>~$93,000 net income</td></tr>
+                <tr><td>Eligibility</td><td>10+ years Canadian residency after age 18</td></tr>
+              </tbody>
+            </table>
+            <p style="margin-top:12px; color: var(--text-2);">Both CPP and OAS are indexed to inflation annually.</p>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <footer id="app-footer">v48</footer>
   </div>
 
-  <script src="src/retirement.js?v=46"></script>
-  <script src="src/charts.js?v=46"></script>
-  <script src="src/addon.js?v=46"></script>
+  <script src="src/retirement.js?v=48"></script>
+  <script src="src/charts.js?v=48"></script>
+  <script src="src/addon.js?v=48"></script>
 </body>
 </html>

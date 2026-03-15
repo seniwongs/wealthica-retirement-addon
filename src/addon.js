@@ -564,6 +564,7 @@ if (typeof Addon === 'undefined' || !_inWealthicaFrame) {
     initTooltips();
     initMcTooltip();
     initRunwaySensitivity();
+    initHelpModal();
     syncControlsToState();
     document.getElementById('inflation-toggle')?.addEventListener('change', () => renderAll());
   });
@@ -599,6 +600,24 @@ if (typeof Addon === 'undefined' || !_inWealthicaFrame) {
 
     document.addEventListener('mouseout', e => {
       if (e.target.closest('[data-tooltip]')) tip.classList.remove('visible');
+    });
+  }
+
+  function initHelpModal() {
+    const modal = document.getElementById('help-modal');
+    const openBtn = document.getElementById('help-btn');
+    const closeBtn = document.getElementById('help-close-btn');
+    if (!modal || !openBtn) return;
+
+    openBtn.addEventListener('click', () => modal.classList.remove('hidden'));
+    closeBtn?.addEventListener('click', () => modal.classList.add('hidden'));
+    modal.addEventListener('click', e => {
+      if (e.target === modal) modal.classList.add('hidden');
+    });
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape' && !modal.classList.contains('hidden')) {
+        modal.classList.add('hidden');
+      }
     });
   }
 

@@ -556,6 +556,110 @@ body {
 .mc-tip-row:last-of-type { border-bottom: none; }
 .mc-tip-hint   { font-size: 0.73rem; opacity: 0.85; margin-top: 8px; line-height: 1.4; }
 
+/* ── Help Modal ──────────────────────────────────────────────────────────────── */
+.help-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.7);
+  z-index: 9999;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 40px 16px;
+  overflow-y: auto;
+}
+.help-modal.hidden { display: none; }
+
+.help-modal-card {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  width: 100%;
+  max-width: 680px;
+  box-shadow: 0 24px 64px rgba(0,0,0,0.5);
+}
+
+.help-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 24px;
+  border-bottom: 1px solid var(--border);
+  font-weight: 700;
+  font-size: 15px;
+  color: var(--text-1);
+}
+
+.help-close-btn {
+  background: none;
+  border: none;
+  color: var(--text-2);
+  font-size: 18px;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 4px;
+  line-height: 1;
+}
+.help-close-btn:hover { color: var(--text-1); background: var(--surface); }
+
+.help-modal-body {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+  color: var(--text-1);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.help-section h3 {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin: 0 0 12px;
+}
+
+.help-section p, .help-section li {
+  color: var(--text-2);
+  margin: 0 0 6px;
+}
+
+.help-section ul {
+  margin: 0;
+  padding-left: 18px;
+}
+
+.help-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+.help-table th {
+  text-align: left;
+  color: var(--text-2);
+  font-weight: 600;
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--border);
+}
+.help-table td {
+  padding: 7px 8px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text-1);
+  vertical-align: top;
+}
+.help-table td:last-child { color: var(--text-2); }
+.help-table tr:last-child td { border-bottom: none; }
+
+.help-sub-title {
+  font-weight: 600;
+  color: var(--text-1);
+  font-size: 12px;
+  margin: 16px 0 8px;
+}
+.help-sub-title:first-child { margin-top: 0; }
+
 /* ── Footer ──────────────────────────────────────────────────────────────────── */
 #app-footer {
   text-align: right;
