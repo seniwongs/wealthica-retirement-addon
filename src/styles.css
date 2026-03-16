@@ -539,6 +539,20 @@ body {
 }
 [data-theme="light"] .tog-btn.active { color: #fff; }
 
+/* ── Nest Egg Hint ───────────────────────────────────────────────────────────── */
+.nest-egg-hint {
+  font-size: 0.7rem;
+  color: var(--accent);
+  opacity: 0.75;
+  cursor: pointer;
+  margin-left: 4px;
+  white-space: nowrap;
+}
+.nest-egg-hint:hover {
+  opacity: 1;
+  text-decoration: underline;
+}
+
 /* ── Data Tooltips ───────────────────────────────────────────────────────────── */
 [data-tooltip] { cursor: help; }
 

@@ -314,6 +314,14 @@ if (typeof Addon === 'undefined' || !_inWealthicaFrame) {
     setStatEl('stat-gains',         investmentGains, true);
     setStatEl('stat-at-retirement', projectedAtRetirement);
     setStatEl('stat-fire',          fireNumber);
+
+    const minNestEgg = Retirement.calcMinimumNestEgg(calcParams);
+    const hintEl = document.getElementById('nest-egg-hint');
+    if (hintEl) {
+      hintEl.textContent = `↓ min $${Math.round(minNestEgg).toLocaleString()}`;
+      hintEl.dataset.value = minNestEgg;
+    }
+
     setStatEl('stat-save-needed',   monthlySavingsNeeded);
     setStatEl('stat-remaining',     lastPoint ? lastPoint.value : 0);
 
@@ -567,6 +575,17 @@ if (typeof Addon === 'undefined' || !_inWealthicaFrame) {
     initHelpModal();
     syncControlsToState();
     document.getElementById('inflation-toggle')?.addEventListener('change', () => renderAll());
+
+    document.getElementById('nest-egg-hint')?.addEventListener('click', () => {
+      const raw = parseInt(document.getElementById('nest-egg-hint').dataset.value) || 0;
+      const clamped = Math.min(5000000, Math.max(250000, raw));
+      const slider   = document.getElementById('target-amount');
+      const numInput = document.getElementById('target-amount-val');
+      slider.value   = clamped;
+      numInput.value = Math.round(clamped).toLocaleString();
+      state.params.targetAmount = clamped;
+      debounceRender();
+    });
   });
 
   function initTooltips() {

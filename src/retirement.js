@@ -251,6 +251,39 @@ const Retirement = (() => {
   }
 
   /**
+   * Minimum nest egg: two-phase annuity PV covering retirement duration.
+   * Phase 1: retirementAge → 65 (no CPP/OAS). Phase 2: 65 → lifeExpectancy (CPP/OAS reduce withdrawal).
+   * Result rounded up to nearest $50k (slider step).
+   */
+  function calcMinimumNestEgg(params) {
+    const {
+      monthlyExpenses, cppMonthly = 0, oasMonthly = 0, extraMonthlyIncome = 0,
+      retirementAge, lifeExpectancy, annualReturnRate
+    } = params;
+
+    const r = annualReturnRate;
+    const totalYears    = Math.max(1, lifeExpectancy - retirementAge);
+    const yearsToCpp    = Math.max(0, Math.min(65 - retirementAge, totalYears));
+    const yearsAfterCpp = Math.max(0, totalYears - yearsToCpp);
+
+    const netAnnualPre  = Math.max(0, (monthlyExpenses - extraMonthlyIncome) * 12);
+    const netAnnualPost = Math.max(0, (monthlyExpenses - extraMonthlyIncome - cppMonthly - oasMonthly) * 12);
+
+    function annuityPV(pmt, n) {
+      if (n <= 0) return 0;
+      if (r === 0) return pmt * n;
+      return pmt * (1 - Math.pow(1 + r, -n)) / r;
+    }
+
+    const pv1      = annuityPV(netAnnualPre, yearsToCpp);
+    const pv2AtCpp = annuityPV(netAnnualPost, yearsAfterCpp);
+    const pv2      = yearsToCpp > 0 ? pv2AtCpp / Math.pow(1 + r, yearsToCpp) : pv2AtCpp;
+
+    const raw = pv1 + pv2;
+    return Math.ceil(raw / 50000) * 50000;
+  }
+
+  /**
    * Simplified Canadian combined federal + provincial effective tax on RRSP withdrawal income.
    */
   function estimateAnnualTax(grossAnnualIncome) {
@@ -315,6 +348,7 @@ const Retirement = (() => {
     buildIncomeSources,
     calcRequiredMonthlySavings,
     calcFireNumber,
+    calcMinimumNestEgg,
     estimateCurrentAge,
     sumPortfolio,
     sumLiabilities,
