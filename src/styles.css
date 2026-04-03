@@ -704,6 +704,66 @@ body {
 }
 .help-sub-title:first-child { margin-top: 0; }
 
+/* ── Mini Input (Net Worth mortgage bar) ─────────────────────────────────────── */
+.mini-input {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text-1);
+  font-size: 13px;
+  font-weight: 600;
+  padding: 3px 8px;
+  width: 64px;
+  -moz-appearance: textfield;
+}
+.mini-input::-webkit-inner-spin-button,
+.mini-input::-webkit-outer-spin-button { opacity: 0; }
+.mini-input:focus { outline: none; border-color: var(--accent); }
+
+/* ── RRSP Tab ─────────────────────────────────────────────────────────────────── */
+.rrsp-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 0 4px;
+}
+.rrsp-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-2);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+#rrsp-contribution {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text-1);
+  font-size: 16px;
+  font-weight: 700;
+  padding: 4px 10px;
+  width: 130px;
+  -moz-appearance: textfield;
+}
+#rrsp-contribution::-webkit-inner-spin-button { opacity: 0; }
+#rrsp-contribution:focus { outline: none; border-color: var(--accent); }
+.rrsp-stats {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+  padding: 8px 0 4px;
+}
+.rrsp-stat { display: flex; flex-direction: column; gap: 2px; }
+.rrsp-stat span:first-child {
+  font-size: 10px;
+  color: var(--text-2);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.rrsp-stat span:last-child { font-size: 18px; font-weight: 700; color: var(--text-1); }
+.rrsp-stat.good span:last-child { color: #4ade80; }
+[data-theme="light"] .rrsp-stat.good span:last-child { color: #15803d; }
+
 /* ── Footer ──────────────────────────────────────────────────────────────────── */
 #app-footer {
   text-align: right;

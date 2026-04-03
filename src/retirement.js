@@ -333,6 +333,50 @@ const Retirement = (() => {
   }
 
   /**
+   * RRSP vs. Taxable account benefit calculator.
+   * Returns year-by-year growth comparison and at-retirement after-tax values.
+   */
+  function calcRrspBenefit(params) {
+    const { annualContribution, yearsToRetirement, annualReturnRate, estimatedGrossIncome } = params;
+    if (!annualContribution || yearsToRetirement <= 0) return null;
+
+    const taxWithout   = estimateAnnualTax(estimatedGrossIncome);
+    const taxWith      = estimateAnnualTax(Math.max(0, estimatedGrossIncome - annualContribution));
+    const annualRefund = taxWithout - taxWith;
+    const marginalRate = annualContribution > 0 ? annualRefund / annualContribution : 0;
+
+    const r = annualReturnRate;
+    const n = yearsToRetirement;
+    const fvFactor = r > 0 ? (Math.pow(1 + r, n) - 1) / r : n;
+
+    // RRSP: contribution + refund reinvested, grows tax-free; taxed at ~half marginal rate at withdrawal
+    const rrspFV       = (annualContribution + annualRefund) * fvFactor;
+    const rrspAfterTax = rrspFV * (1 - marginalRate * 0.5);
+
+    // Taxable: no refund, 0.5%/yr tax drag on returns, 15% effective tax on gains at withdrawal
+    const taxableReturn   = Math.max(0, r - 0.005);
+    const taxableFVFactor = taxableReturn > 0 ? (Math.pow(1 + taxableReturn, n) - 1) / taxableReturn : n;
+    const taxableFV       = annualContribution * taxableFVFactor;
+    const taxableGains    = Math.max(0, taxableFV - annualContribution * n);
+    const taxableAfterTax = taxableFV - taxableGains * 0.15;
+
+    // Year-by-year cumulative values for the chart
+    const years = Array.from({ length: n + 1 }, (_, i) => i);
+    const rrspByYear = years.map(i => {
+      if (i === 0) return 0;
+      const f = r > 0 ? (Math.pow(1 + r, i) - 1) / r : i;
+      return Math.round((annualContribution + annualRefund) * f);
+    });
+    const taxableByYear = years.map(i => {
+      if (i === 0) return 0;
+      const f = taxableReturn > 0 ? (Math.pow(1 + taxableReturn, i) - 1) / taxableReturn : i;
+      return Math.round(annualContribution * f);
+    });
+
+    return { annualRefund, marginalRate, rrspAfterTax, taxableAfterTax, rrspFV, taxableFV, years, rrspByYear, taxableByYear };
+  }
+
+  /**
    * Estimate current age from user data or fallback to 40.
    */
   function estimateCurrentAge(userData) {
@@ -373,6 +417,7 @@ const Retirement = (() => {
     buildIncomeSources,
     calcRequiredMonthlySavings,
     calcFireNumber,
+    calcRrspBenefit,
     sequenceOfReturns,
     estimateCurrentAge,
     sumPortfolio,

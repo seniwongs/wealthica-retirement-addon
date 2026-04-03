@@ -123,7 +123,7 @@ const Charts = (() => {
   }
 
   // ── Chart 1: Portfolio Value Over Time ─────────────────────────────────────
-  function renderPortfolioValue(historicalData, projection, targetAmount, retirementYear) {
+  function renderPortfolioValue(historicalData, projection, targetAmount, retirementYear, overlays = null) {
     destroyIfExists('portfolio-value');
     const ctx = document.getElementById('chart-portfolio-value');
     if (!ctx) return;
@@ -230,6 +230,34 @@ const Charts = (() => {
             fill: false,
             tension: 0,
           }] : []),
+          ...(overlays ? [
+            {
+              label: 'Retire 2yr Earlier',
+              data: allLabels.map(y => {
+                const d = overlays.early.find(p => p.year === y);
+                return d ? d.value : null;
+              }),
+              borderColor: 'rgba(34,211,238,0.28)',
+              borderDash: [2, 5],
+              borderWidth: 1.5,
+              fill: false,
+              pointRadius: 0,
+              tension: 0.3,
+            },
+            {
+              label: 'Retire 2yr Later',
+              data: allLabels.map(y => {
+                const d = overlays.late.find(p => p.year === y);
+                return d ? d.value : null;
+              }),
+              borderColor: 'rgba(168,85,247,0.28)',
+              borderDash: [2, 5],
+              borderWidth: 1.5,
+              fill: false,
+              pointRadius: 0,
+              tension: 0.3,
+            },
+          ] : []),
         ]
       },
       options: getBaseOptions(),
@@ -652,16 +680,30 @@ const Charts = (() => {
   }
 
   // ── Chart 7: Net Worth Over Time ────────────────────────────────────────────
-  function renderNetWorth(projection, totalLiabilities, totalAssets) {
+  function renderNetWorth(projection, totalLiabilities, totalAssets, params = {}) {
     destroyIfExists('net-worth');
     const ctx = document.getElementById('chart-net-worth');
     if (!ctx) return;
 
-    // Liabilities assumed fixed for simplicity (mortgage pays down at 2%/yr)
-    const liabData = projection.map((d, i) => {
-      const paydownRate = 0.02;
-      return Math.max(0, Math.round(totalLiabilities * Math.pow(1 - paydownRate, i)));
+    // Real mortgage amortization
+    const mortgageRate  = params.mortgageRate  || 0.05;
+    const mortgageYears = params.mortgageYears || 20;
+    const mr = mortgageRate / 12;
+    const mn = mortgageYears * 12;
+    const monthlyPayment = mr > 0
+      ? totalLiabilities * (mr * Math.pow(1 + mr, mn)) / (Math.pow(1 + mr, mn) - 1)
+      : (mn > 0 ? totalLiabilities / mn : 0);
+
+    const liabData = projection.map((_, i) => {
+      const monthsPaid = i * 12;
+      if (monthsPaid >= mn || totalLiabilities <= 0) return 0;
+      const balance = mr > 0
+        ? totalLiabilities * Math.pow(1 + mr, monthsPaid)
+          - monthlyPayment * (Math.pow(1 + mr, monthsPaid) - 1) / mr
+        : totalLiabilities - monthlyPayment * monthsPaid;
+      return Math.max(0, Math.round(balance));
     });
+    const payoffIdx = liabData.findIndex(v => v === 0);
 
     // Other assets (house, car) held flat at current value
     const assetsValue = totalAssets || 0;
@@ -711,13 +753,40 @@ const Charts = (() => {
       });
     }
 
+    // Plugin: mortgage payoff milestone line
+    const payoffPlugin = {
+      id: 'mortgagePayoff',
+      afterDraw(chart) {
+        if (payoffIdx <= 0 || totalLiabilities <= 0) return;
+        const { ctx: c, chartArea, scales } = chart;
+        const xScale = scales.x;
+        const x = xScale.getPixelForValue(payoffIdx);
+        if (!isFinite(x)) return;
+        c.save();
+        c.strokeStyle = 'rgba(248,113,113,0.4)';
+        c.lineWidth = 1;
+        c.setLineDash([4, 4]);
+        c.beginPath();
+        c.moveTo(x, chartArea.top);
+        c.lineTo(x, chartArea.bottom);
+        c.stroke();
+        c.setLineDash([]);
+        c.fillStyle = 'rgba(248,113,113,0.7)';
+        c.font = '9px sans-serif';
+        c.textAlign = 'center';
+        c.fillText('Mortgage Paid Off', x, chartArea.top + 12);
+        c.restore();
+      }
+    };
+
     instances['net-worth'] = new Chart(ctx, {
       type: 'line',
       data: {
         labels: projection.map(d => d.year),
         datasets,
       },
-      options: getBaseOptions()
+      options: getBaseOptions(),
+      plugins: [payoffPlugin],
     });
   }
 
@@ -814,6 +883,52 @@ const Charts = (() => {
     });
   }
 
+  // ── Chart 9: RRSP vs. Taxable ──────────────────────────────────────────────
+  function renderRrsp(rrspData) {
+    destroyIfExists('rrsp');
+    const ctx = document.getElementById('chart-rrsp');
+    if (!ctx) return;
+
+    const { years, rrspByYear, taxableByYear } = rrspData;
+    const bo = getBaseOptions();
+    instances['rrsp'] = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: years,
+        datasets: [
+          {
+            label: 'RRSP (incl. refund reinvested)',
+            data: rrspByYear,
+            borderColor: COLORS.blue,
+            backgroundColor: COLORS.blueLight,
+            fill: true,
+            tension: 0.3,
+            borderWidth: 2.5,
+            pointRadius: 0,
+          },
+          {
+            label: 'Taxable Account',
+            data: taxableByYear,
+            borderColor: COLORS.amber,
+            borderDash: [5, 4],
+            backgroundColor: 'transparent',
+            fill: false,
+            tension: 0.3,
+            borderWidth: 2,
+            pointRadius: 0,
+          },
+        ]
+      },
+      options: {
+        ...bo,
+        scales: {
+          ...bo.scales,
+          x: { ...bo.scales.x, title: { display: true, text: 'Years from now', color: bo.scales.x.ticks.color, font: { size: 11 } } },
+        }
+      },
+    });
+  }
+
   function _showNoData(canvas) {
     canvas.parentElement.innerHTML = '<p style="color:#8fa3b3;text-align:center;padding:40px">No historical data available yet.</p>';
   }
@@ -827,6 +942,7 @@ const Charts = (() => {
     renderWithdrawalRate,
     renderNetWorth,
     renderSequenceRisk,
+    renderRrsp,
     fmt,
   };
 })();

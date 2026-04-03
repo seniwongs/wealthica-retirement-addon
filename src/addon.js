@@ -84,14 +84,24 @@ if (typeof Addon === 'undefined' || !_inWealthicaFrame) {
       oasMonthly: 700,
       cppStartAge: 65,
       oasStartAge: 65,
+      rrspAnnualContribution: 6000,
+      mortgageRate: 0.05,
+      mortgageYears: 20,
     }
   };
 
   // Sensitivity overrides for the Runway chart (null = use base params)
   const runwaySensitivity = { returnRate: null, inflationRate: null };
 
+  // Monte Carlo risk profile override (null = Growth 12%)
+  const mcSensitivity = { volatility: null };
+
   // Latest Monte Carlo result — populated in renderAll(), used by initMcTooltip()
   let _lastMcResult = null;
+
+  // Cached for RRSP tab re-render without full renderAll()
+  let _lastCalcParams = null;
+  let _lastAvgMonthlySavings = 0;
 
   // ── Wealthica SDK ────────────────────────────────────────────────────────────
   const addon = new Addon();
@@ -257,7 +267,7 @@ if (typeof Addon === 'undefined' || !_inWealthicaFrame) {
       oasMonthly: p.oasMonthly,
       cppStartAge: p.cppStartAge,
       oasStartAge: p.oasStartAge,
-      returnVolatility: 0.12,
+      returnVolatility: mcSensitivity.volatility !== null ? mcSensitivity.volatility : 0.12,
       inflationRate,
     };
 
@@ -350,15 +360,34 @@ if (typeof Addon === 'undefined' || !_inWealthicaFrame) {
       }
     }
 
+    // ── Retire ±2yr overlays for Portfolio Value chart ─────────────────────────
+    const deflate = proj => inflationRate > 0
+      ? proj.map(d => ({ ...d, value: Math.round(d.value / Math.pow(1 + inflationRate, d.year - currentYear)) }))
+      : proj;
+    const earlyAge = Math.max(p.currentAge + 1, p.retirementAge - 2);
+    const lateAge  = Math.min(75, p.retirementAge + 2);
+    const overlays = (earlyAge !== p.retirementAge || lateAge !== p.retirementAge) ? {
+      early: deflate(Retirement.projectPortfolio({ ...calcParams, retirementAge: earlyAge })),
+      late:  deflate(Retirement.projectPortfolio({ ...calcParams, retirementAge: lateAge })),
+    } : null;
+
     // Render each chart
-    Charts.renderPortfolioValue(historicalData, projection, p.targetAmount, retirementYear);
+    Charts.renderPortfolioValue(historicalData, projection, p.targetAmount, retirementYear, overlays);
     Charts.renderContributions(historicalData);
     renderRunwayChart();
     Charts.renderMonteCarlo(mcResult);
     Charts.renderIncomeSources(incomeSources);
     Charts.renderWithdrawalRate(withdrawalRates);
-    Charts.renderNetWorth(projection, totalLiabilities, totalAssets);
+    Charts.renderNetWorth(projection, totalLiabilities, totalAssets, {
+      mortgageRate: p.mortgageRate,
+      mortgageYears: p.mortgageYears,
+    });
     Charts.renderSequenceRisk(Retirement.sequenceOfReturns(calcParams));
+
+    // ── Cache for RRSP tab ─────────────────────────────────────────────────────
+    _lastCalcParams = calcParams;
+    _lastAvgMonthlySavings = avgMonthlySavings;
+    renderRrspTab();
   }
 
   // ── Runway Chart (with sensitivity overrides) ────────────────────────────────
@@ -421,6 +450,75 @@ if (typeof Addon === 'undefined' || !_inWealthicaFrame) {
     });
   }
 
+  // ── RRSP Tab ──────────────────────────────────────────────────────────────────
+  function renderRrspTab() {
+    if (!_lastCalcParams) return;
+    const p = state.params;
+    const estimatedGrossIncome = (_lastAvgMonthlySavings + p.monthlyExpenses) * 12;
+    const rrspData = Retirement.calcRrspBenefit({
+      annualContribution: p.rrspAnnualContribution,
+      yearsToRetirement: Math.max(1, p.retirementAge - p.currentAge),
+      annualReturnRate: p.annualReturnRate,
+      estimatedGrossIncome,
+    });
+    if (!rrspData) return;
+
+    const statsEl = document.getElementById('rrsp-stats');
+    if (statsEl) {
+      const fmtPct = v => Math.round(v * 100) + '%';
+      statsEl.innerHTML = `
+        <div class="rrsp-stat"><span>Annual Tax Refund</span><span>${Charts.fmt(rrspData.annualRefund)}</span></div>
+        <div class="rrsp-stat"><span>Marginal Rate</span><span>${fmtPct(rrspData.marginalRate)}</span></div>
+        <div class="rrsp-stat"><span>RRSP After-Tax at Retirement</span><span>${Charts.fmt(rrspData.rrspAfterTax)}</span></div>
+        <div class="rrsp-stat"><span>Taxable After-Tax at Retirement</span><span>${Charts.fmt(rrspData.taxableAfterTax)}</span></div>
+        <div class="rrsp-stat good"><span>RRSP Advantage</span><span>${Charts.fmt(rrspData.rrspAfterTax - rrspData.taxableAfterTax)}</span></div>
+      `;
+    }
+    Charts.renderRrsp(rrspData);
+  }
+
+  function initRrspTab() {
+    const input = document.getElementById('rrsp-contribution');
+    if (!input) return;
+    input.value = state.params.rrspAnnualContribution;
+    input.addEventListener('change', () => {
+      state.params.rrspAnnualContribution = Math.max(0, parseInt(input.value) || 0);
+      input.value = state.params.rrspAnnualContribution;
+      renderRrspTab();
+      _ignoringNextUpdate = true;
+      addon.saveData({ params: state.params });
+    });
+  }
+
+  // ── Mortgage Inputs ──────────────────────────────────────────────────────────
+  function initMortgageInputs() {
+    const mrEl = document.getElementById('mortgage-rate');
+    const myEl = document.getElementById('mortgage-years');
+    if (!mrEl && !myEl) return;
+    [mrEl, myEl].forEach(el => {
+      if (!el) return;
+      el.addEventListener('change', () => {
+        state.params.mortgageRate  = (parseFloat(mrEl?.value) || 5) / 100;
+        state.params.mortgageYears = parseInt(myEl?.value) || 20;
+        renderAll();
+        _ignoringNextUpdate = true;
+        addon.saveData({ params: state.params });
+      });
+    });
+  }
+
+  // ── MC Risk Profile ──────────────────────────────────────────────────────────
+  function initMcSensitivity() {
+    document.querySelectorAll('[data-mc-vol]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('[data-mc-vol]').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        mcSensitivity.volatility = parseFloat(btn.dataset.mcVol);
+        renderAll();
+      });
+    });
+  }
+
   // ── Controls Wiring ──────────────────────────────────────────────────────────
   // Each def maps a range slider (id) + number input (valId) to a state key.
   // stateValue()  → what to store in state.params
@@ -463,6 +561,14 @@ if (typeof Addon === 'undefined' || !_inWealthicaFrame) {
         if (numInput) numInput.value = def.formatDisplay ? def.formatDisplay(v) : v;
       }
     });
+    // Sync mortgage panel inputs
+    const mrEl = document.getElementById('mortgage-rate');
+    const myEl = document.getElementById('mortgage-years');
+    if (mrEl) mrEl.value = +((state.params.mortgageRate || 0.05) * 100).toFixed(2);
+    if (myEl) myEl.value = state.params.mortgageYears || 20;
+    // Sync RRSP contribution input
+    const rrspEl = document.getElementById('rrsp-contribution');
+    if (rrspEl) rrspEl.value = state.params.rrspAnnualContribution || 6000;
   }
 
   // Cross-clamp currentAge and retirementAge so retirement age is always > current age.
@@ -580,6 +686,9 @@ if (typeof Addon === 'undefined' || !_inWealthicaFrame) {
     initTooltips();
     initMcTooltip();
     initRunwaySensitivity();
+    initMcSensitivity();
+    initMortgageInputs();
+    initRrspTab();
     initHelpModal();
     syncControlsToState();
     document.getElementById('inflation-toggle')?.addEventListener('change', () => renderAll());

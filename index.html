@@ -7,7 +7,7 @@
   <link rel="icon" href="icon.svg" type="image/svg+xml" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@wealthica/wealthica.js/dist/addon.min.js"></script>
-  <link rel="stylesheet" href="src/styles.css?v=56" />
+  <link rel="stylesheet" href="src/styles.css?v=57" />
 </head>
 <body>
   <div id="app">
@@ -219,6 +219,7 @@
           <button class="tab" data-tab="withdrawal-rate" role="tab" aria-selected="false">Withdrawal Rate</button>
           <button class="tab" data-tab="net-worth" role="tab" aria-selected="false">Net Worth</button>
           <button class="tab" data-tab="seq-risk" role="tab" aria-selected="false">Seq. Risk</button>
+          <button class="tab" data-tab="rrsp" role="tab" aria-selected="false">RRSP</button>
         </div>
         <div class="tab-bar-actions">
           <button id="theme-toggle" class="theme-btn" aria-label="Toggle light/dark theme">☀️ Light</button>
@@ -260,6 +261,15 @@
           <h2>Monte Carlo Simulation</h2>
           <p class="chart-desc">Probability of success across 500 randomized market scenarios.</p>
           <div id="mc-stats" class="mc-stats"></div>
+          <div class="sensitivity-bar">
+            <div class="tog-group">
+              <span class="tog-label">Risk Profile</span>
+              <button class="tog-btn" data-mc-vol="0.06">Conservative</button>
+              <button class="tog-btn" data-mc-vol="0.10">Balanced</button>
+              <button class="tog-btn active" data-mc-vol="0.12">Growth</button>
+              <button class="tog-btn" data-mc-vol="0.16">Aggressive</button>
+            </div>
+          </div>
           <div class="chart-wrapper"><canvas id="chart-monte-carlo"></canvas></div>
         </div>
         <div class="chart-panel" id="panel-income-sources">
@@ -275,12 +285,32 @@
         <div class="chart-panel" id="panel-net-worth">
           <h2>Net Worth Over Time</h2>
           <p class="chart-desc">Total net worth: investments minus liabilities over time.</p>
+          <div class="sensitivity-bar">
+            <div class="tog-group">
+              <span class="tog-label">Mortgage Rate</span>
+              <input type="number" id="mortgage-rate" value="5" min="0" max="15" step="0.25" class="mini-input"> %
+            </div>
+            <div class="tog-group">
+              <span class="tog-label">Remaining Years</span>
+              <input type="number" id="mortgage-years" value="20" min="1" max="35" step="1" class="mini-input">
+            </div>
+          </div>
           <div class="chart-wrapper"><canvas id="chart-net-worth"></canvas></div>
         </div>
         <div class="chart-panel" id="panel-seq-risk">
           <h2>Sequence of Returns Risk</h2>
           <p class="chart-desc">A 30% crash early in retirement is far more damaging than the same crash late. All three scenarios use your expected return — only the crash timing differs.</p>
           <div class="chart-wrapper"><canvas id="chart-seq-risk"></canvas></div>
+        </div>
+        <div class="chart-panel" id="panel-rrsp">
+          <h2>RRSP vs. Taxable Account</h2>
+          <p class="chart-desc">How much further your savings go inside an RRSP — the tax refund gets reinvested each year, compounding the advantage over time.</p>
+          <div class="rrsp-controls">
+            <label class="rrsp-label" for="rrsp-contribution">Annual RRSP Contribution ($)</label>
+            <input type="number" id="rrsp-contribution" value="6000" min="0" max="31560" step="500" />
+          </div>
+          <div id="rrsp-stats" class="rrsp-stats"></div>
+          <div class="chart-wrapper"><canvas id="chart-rrsp"></canvas></div>
         </div>
       </div>
     </div>
@@ -370,11 +400,11 @@
       </div>
     </div>
 
-    <footer id="app-footer">v56</footer>
+    <footer id="app-footer">v57</footer>
   </div>
 
-  <script src="src/retirement.js?v=56"></script>
-  <script src="src/charts.js?v=56"></script>
-  <script src="src/addon.js?v=56"></script>
+  <script src="src/retirement.js?v=57"></script>
+  <script src="src/charts.js?v=57"></script>
+  <script src="src/addon.js?v=57"></script>
 </body>
 </html>
