@@ -280,22 +280,28 @@ const Charts = (() => {
     if (!retData.length) return;
 
     // Build safe withdrawal line: portfolio needed to sustain net expenses at 4% SWR
+    const cppStartAge = params.cppStartAge || 65;
+    const oasStartAge = params.oasStartAge || 65;
     const safeData = retData.map(d => {
       const age = params.retirementAge + (d.year - retirementYear);
-      let netAnnual;
-      if (age >= 65) {
-        netAnnual = (params.monthlyExpenses - (params.cppMonthly || 0) - (params.oasMonthly || 0) - (params.extraMonthlyIncome || 0)) * 12;
-      } else {
-        netAnnual = (params.monthlyExpenses - (params.extraMonthlyIncome || 0)) * 12;
-      }
+      const cpp = age >= cppStartAge ? (params.cppMonthly || 0) : 0;
+      const oas = age >= oasStartAge ? (params.oasMonthly || 0) : 0;
+      const netAnnual = (params.monthlyExpenses - cpp - oas - (params.extraMonthlyIncome || 0)) * 12;
       return Math.max(0, netAnnual) / 0.04;
     });
 
     // Build milestone markers
     const milestones = [];
     milestones.push({ year: retirementYear, label: `Retirement (${retirementYear})` });
-    if (params.retirementAge < 65) {
-      milestones.push({ year: retirementYear + (65 - params.retirementAge), label: 'CPP & OAS' });
+    if (cppStartAge === oasStartAge && cppStartAge > params.retirementAge) {
+      milestones.push({ year: retirementYear + (cppStartAge - params.retirementAge), label: `CPP & OAS (${cppStartAge})` });
+    } else {
+      if (cppStartAge > params.retirementAge) {
+        milestones.push({ year: retirementYear + (cppStartAge - params.retirementAge), label: `CPP (${cppStartAge})` });
+      }
+      if (oasStartAge > params.retirementAge) {
+        milestones.push({ year: retirementYear + (oasStartAge - params.retirementAge), label: `OAS (${oasStartAge})` });
+      }
     }
     if (params.lifeExpectancy > 71 && params.retirementAge <= 71) {
       milestones.push({ year: retirementYear + (71 - params.retirementAge), label: 'RRIF (71)' });
@@ -715,6 +721,99 @@ const Charts = (() => {
     });
   }
 
+  // ── Chart 8: Sequence of Returns Risk ──────────────────────────────────────
+  function renderSequenceRisk(data) {
+    destroyIfExists('seq-risk');
+    const ctx = document.getElementById('chart-seq-risk');
+    if (!ctx) return;
+
+    const { labels, base, earlyCrash, lateCrash, lateCrashAge } = data;
+
+    // Plugin: vertical crash markers
+    const crashPlugin = {
+      id: 'crashMarkers',
+      afterDraw(chart) {
+        const { ctx: c, chartArea, scales } = chart;
+        const xScale = scales.x;
+        const chartLabels = chart.data.labels;
+        // Early crash marker (age retirementAge + 1)
+        const earlyIdx = 1;
+        // Late crash marker
+        const lateIdx = labels.indexOf(lateCrashAge);
+
+        [[earlyIdx, COLORS.red, 'Early crash'], [lateIdx, COLORS.amber, 'Late crash']].forEach(([idx, color, label]) => {
+          if (idx < 0 || idx >= chartLabels.length) return;
+          const x = xScale.getPixelForValue(idx);
+          if (!isFinite(x)) return;
+          c.save();
+          c.strokeStyle = color + '66';
+          c.lineWidth = 1;
+          c.setLineDash([3, 3]);
+          c.beginPath();
+          c.moveTo(x, chartArea.top);
+          c.lineTo(x, chartArea.bottom);
+          c.stroke();
+          c.setLineDash([]);
+          c.fillStyle = color + 'cc';
+          c.font = '9px sans-serif';
+          c.textAlign = 'center';
+          c.fillText(label, x, chartArea.top + 12);
+          c.restore();
+        });
+      }
+    };
+
+    const bo = getBaseOptions();
+    instances['seq-risk'] = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels,
+        datasets: [
+          {
+            label: 'Base Case (no crash)',
+            data: base,
+            borderColor: COLORS.blue,
+            backgroundColor: 'transparent',
+            fill: false,
+            tension: 0.3,
+            borderWidth: 2.5,
+            pointRadius: 0,
+          },
+          {
+            label: 'Early Crash (age ' + (labels[1] ?? '') + ')',
+            data: earlyCrash,
+            borderColor: COLORS.red,
+            borderDash: [5, 4],
+            backgroundColor: 'transparent',
+            fill: false,
+            tension: 0.3,
+            borderWidth: 2,
+            pointRadius: 0,
+          },
+          {
+            label: 'Late Crash (age ' + lateCrashAge + ')',
+            data: lateCrash,
+            borderColor: COLORS.amber,
+            borderDash: [5, 4],
+            backgroundColor: 'transparent',
+            fill: false,
+            tension: 0.3,
+            borderWidth: 2,
+            pointRadius: 0,
+          },
+        ]
+      },
+      options: {
+        ...bo,
+        scales: {
+          ...bo.scales,
+          x: { ...bo.scales.x, title: { display: true, text: 'Age', color: bo.scales.x.ticks.color, font: { size: 11 } } },
+        }
+      },
+      plugins: [crashPlugin],
+    });
+  }
+
   function _showNoData(canvas) {
     canvas.parentElement.innerHTML = '<p style="color:#8fa3b3;text-align:center;padding:40px">No historical data available yet.</p>';
   }
@@ -727,6 +826,7 @@ const Charts = (() => {
     renderIncomeSources,
     renderWithdrawalRate,
     renderNetWorth,
+    renderSequenceRisk,
     fmt,
   };
 })();

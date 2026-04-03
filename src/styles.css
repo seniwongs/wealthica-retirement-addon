@@ -403,6 +403,34 @@ body {
 .stat-card.gain .stat-value         { color: #4ade80; }
 .stat-card.gain .stat-value.negative { color: #f87171; }
 
+.stat-sub { font-size: 0.7rem; color: var(--text-2); margin-top: 1px; }
+.stat-sub.rate-good { color: #4ade80; }
+.stat-sub.rate-ok   { color: #fbbf24; }
+.stat-sub.rate-low  { color: #f87171; }
+
+/* ── Withdrawal Strategy Card ─────────────────────────────────────────────── */
+#withdrawal-strategy {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 16px;
+  font-size: 0.78rem;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+  flex-wrap: wrap;
+}
+.strategy-label { color: var(--text-2); white-space: nowrap; }
+.strategy-step  { padding: 2px 8px; border-radius: 4px; white-space: nowrap; }
+.step-1 { background: rgba(74,222,128,0.12); color: #4ade80; }
+.step-2 { background: rgba(59,130,246,0.12); color: #3b82f6; }
+.step-3 { background: rgba(251,191,36,0.12); color: #fbbf24; }
+[data-theme="light"] .step-1 { background: rgba(22,163,74,0.1); color: #15803d; }
+[data-theme="light"] .step-2 { background: rgba(37,99,235,0.1); color: #1d4ed8; }
+[data-theme="light"] .step-3 { background: rgba(180,130,0,0.1); color: #92400e; }
+.strategy-sep { color: var(--text-3); }
+.strategy-step em { font-style: normal; opacity: 0.7; margin-left: 4px; font-size: 0.72rem; }
+
 /* ── Tabs ─────────────────────────────────────────────────────────────────────── */
 #tab-bar {
   display: flex;

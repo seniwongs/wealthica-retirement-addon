@@ -82,6 +82,8 @@ if (typeof Addon === 'undefined' || !_inWealthicaFrame) {
       lifeExpectancy: 90,
       cppMonthly: 800,
       oasMonthly: 700,
+      cppStartAge: 65,
+      oasStartAge: 65,
     }
   };
 
@@ -253,6 +255,8 @@ if (typeof Addon === 'undefined' || !_inWealthicaFrame) {
       targetAmount: p.targetAmount,
       cppMonthly: p.cppMonthly,
       oasMonthly: p.oasMonthly,
+      cppStartAge: p.cppStartAge,
+      oasStartAge: p.oasStartAge,
       returnVolatility: 0.12,
       inflationRate,
     };
@@ -311,6 +315,13 @@ if (typeof Addon === 'undefined' || !_inWealthicaFrame) {
     setStatEl('stat-portfolio',     currentPortfolioValue);
     setStatEl('stat-contributed',   totalContributed);
     setStatEl('stat-avg-savings',   avgMonthlySavings);
+    const savingsRateEl = document.getElementById('stat-savings-rate');
+    if (savingsRateEl && p.monthlyExpenses > 0) {
+      const rate = Math.round((avgMonthlySavings / (avgMonthlySavings + p.monthlyExpenses)) * 100);
+      const cls = rate >= 20 ? 'rate-good' : rate >= 10 ? 'rate-ok' : 'rate-low';
+      savingsRateEl.textContent = rate + '% savings rate';
+      savingsRateEl.className = 'stat-sub ' + cls;
+    }
     setStatEl('stat-gains',         investmentGains, true);
     setStatEl('stat-at-retirement', projectedAtRetirement);
     setStatEl('stat-fire',          fireNumber);
@@ -347,6 +358,7 @@ if (typeof Addon === 'undefined' || !_inWealthicaFrame) {
     Charts.renderIncomeSources(incomeSources);
     Charts.renderWithdrawalRate(withdrawalRates);
     Charts.renderNetWorth(projection, totalLiabilities, totalAssets);
+    Charts.renderSequenceRisk(Retirement.sequenceOfReturns(calcParams));
   }
 
   // ── Runway Chart (with sensitivity overrides) ────────────────────────────────
@@ -372,6 +384,8 @@ if (typeof Addon === 'undefined' || !_inWealthicaFrame) {
       extraMonthlyIncome: p.extraMonthlyIncome,
       cppMonthly: p.cppMonthly,
       oasMonthly: p.oasMonthly,
+      cppStartAge: p.cppStartAge,
+      oasStartAge: p.oasStartAge,
       inflationRate,
     };
 
@@ -421,6 +435,8 @@ if (typeof Addon === 'undefined' || !_inWealthicaFrame) {
     { id: 'life-expectancy',   stateKey: 'lifeExpectancy',    stateValue: v => parseInt(v),        displayValue: p => p.lifeExpectancy,          min: 75,    max: 100,    type: 'select' },
     { id: 'cpp-monthly',       valId: 'cpp-monthly-val',       stateKey: 'cppMonthly',        stateValue: v => parseInt(v),        displayValue: p => p.cppMonthly,              min: 0,     max: 1400    },
     { id: 'oas-monthly',       valId: 'oas-monthly-val',       stateKey: 'oasMonthly',        stateValue: v => parseInt(v),        displayValue: p => p.oasMonthly,              min: 0,     max: 800     },
+    { id: 'cpp-start-age',     valId: 'cpp-start-age-val',     stateKey: 'cppStartAge',       stateValue: v => parseInt(v),        displayValue: p => p.cppStartAge,             min: 60,    max: 70      },
+    { id: 'oas-start-age',     valId: 'oas-start-age-val',     stateKey: 'oasStartAge',       stateValue: v => parseInt(v),        displayValue: p => p.oasStartAge,             min: 65,    max: 70      },
   ];
 
   // Clamp saved params to valid ranges to prevent stale/invalid stored values.

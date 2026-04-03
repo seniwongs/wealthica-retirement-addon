@@ -7,7 +7,7 @@
   <link rel="icon" href="icon.svg" type="image/svg+xml" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@wealthica/wealthica.js/dist/addon.min.js"></script>
-  <link rel="stylesheet" href="src/styles.css?v=54" />
+  <link rel="stylesheet" href="src/styles.css?v=56" />
 </head>
 <body>
   <div id="app">
@@ -73,7 +73,7 @@
           </div>
 
           <div class="control-group">
-            <label for="cpp-monthly" data-tooltip="Canada Pension Plan benefit. Starts at 65 (avg ~$800/mo, max ~$1,300/mo in 2024). Reduces required withdrawals from age 65.">CPP ($/mo)</label>
+            <label for="cpp-monthly" data-tooltip="Canada Pension Plan benefit at age 65. Avg ~$800/mo, max ~$1,300/mo (2024). Use CPP Age to model taking it earlier or later.">CPP ($/mo)</label>
             <div class="control-track">
               <input type="number" id="cpp-monthly-val"       min="0"      max="1400"    value="800"      step="50" />
               <input type="range"  id="cpp-monthly"           min="0"      max="1400"    value="800"      step="50" />
@@ -81,10 +81,26 @@
           </div>
 
           <div class="control-group">
-            <label for="oas-monthly" data-tooltip="Old Age Security benefit. Starts at 65 (max ~$700/mo in 2024). Supplements CPP and reduces portfolio drawdown.">OAS ($/mo)</label>
+            <label for="oas-monthly" data-tooltip="Old Age Security benefit. Starts at age specified by OAS Age. Max ~$700/mo at 65 (2024); defer to 70 for +36%.">OAS ($/mo)</label>
             <div class="control-track">
               <input type="number" id="oas-monthly-val"       min="0"      max="800"     value="700"      step="25" />
               <input type="range"  id="oas-monthly"           min="0"      max="800"     value="700"      step="25" />
+            </div>
+          </div>
+
+          <div class="control-group">
+            <label for="cpp-start-age" data-tooltip="Age you plan to start CPP. Deferring past 65 increases benefit ~8.4%/yr (max +42% at 70). Taking at 60 reduces by ~36%.">CPP Age</label>
+            <div class="control-track">
+              <input type="number" id="cpp-start-age-val"     min="60"     max="70"      value="65"       step="1" />
+              <input type="range"  id="cpp-start-age"         min="60"     max="70"      value="65"       step="1" />
+            </div>
+          </div>
+
+          <div class="control-group">
+            <label for="oas-start-age" data-tooltip="Age you plan to start OAS. Deferring past 65 increases benefit ~7.2%/yr (max +36% at 70). Minimum age is 65.">OAS Age</label>
+            <div class="control-track">
+              <input type="number" id="oas-start-age-val"     min="65"     max="70"      value="65"       step="1" />
+              <input type="range"  id="oas-start-age"         min="65"     max="70"      value="65"       step="1" />
             </div>
           </div>
 
@@ -146,6 +162,16 @@
         <span id="track-detail"></span>
       </div>
 
+      <!-- ── Withdrawal Strategy Card ── -->
+      <div id="withdrawal-strategy">
+        <span class="strategy-label">Recommended draw order:</span>
+        <span class="strategy-step step-1">① TFSA <em>tax-free</em></span>
+        <span class="strategy-sep">→</span>
+        <span class="strategy-step step-2">② Non-Registered <em>capital gains only</em></span>
+        <span class="strategy-sep">→</span>
+        <span class="strategy-step step-3">③ RRSP/RRIF <em>defer taxes longest</em></span>
+      </div>
+
       <!-- ── Key Figures Strip ── -->
       <div id="stats-strip">
         <div class="stat-card">
@@ -157,8 +183,9 @@
           <span class="stat-value" id="stat-contributed">—</span>
         </div>
         <div class="stat-card">
-          <span class="stat-label" data-tooltip="Average monthly contributions to your investment accounts over the last 12 months">Avg Mo. Savings</span>
+          <span class="stat-label" data-tooltip="Average monthly contributions over the last 12 months, and your savings rate (savings ÷ savings+expenses)">Avg Mo. Savings</span>
           <span class="stat-value" id="stat-avg-savings">—</span>
+          <span class="stat-sub" id="stat-savings-rate">—</span>
         </div>
         <div class="stat-card gain">
           <span class="stat-label" data-tooltip="Portfolio growth from market returns — value minus total contributions">Investment Gains</span>
@@ -191,6 +218,7 @@
           <button class="tab" data-tab="income-sources" role="tab" aria-selected="false">Income Sources</button>
           <button class="tab" data-tab="withdrawal-rate" role="tab" aria-selected="false">Withdrawal Rate</button>
           <button class="tab" data-tab="net-worth" role="tab" aria-selected="false">Net Worth</button>
+          <button class="tab" data-tab="seq-risk" role="tab" aria-selected="false">Seq. Risk</button>
         </div>
         <div class="tab-bar-actions">
           <button id="theme-toggle" class="theme-btn" aria-label="Toggle light/dark theme">☀️ Light</button>
@@ -249,6 +277,11 @@
           <p class="chart-desc">Total net worth: investments minus liabilities over time.</p>
           <div class="chart-wrapper"><canvas id="chart-net-worth"></canvas></div>
         </div>
+        <div class="chart-panel" id="panel-seq-risk">
+          <h2>Sequence of Returns Risk</h2>
+          <p class="chart-desc">A 30% crash early in retirement is far more damaging than the same crash late. All three scenarios use your expected return — only the crash timing differs.</p>
+          <div class="chart-wrapper"><canvas id="chart-seq-risk"></canvas></div>
+        </div>
       </div>
     </div>
     <!-- ── Help Modal ── -->
@@ -286,8 +319,10 @@
                 <tr><td>Expected Return</td><td>Assumed annual portfolio growth rate. Canadian diversified portfolios have historically averaged 6–8%.</td><td>5–7% for diversified Canadian portfolio.</td></tr>
                 <tr><td>Extra Monthly Income</td><td>Non-portfolio retirement income (rental, part-time work, etc.). Reduces monthly withdrawals, extending your runway.</td><td>0 if not applicable.</td></tr>
                 <tr><td>Monthly Expenses</td><td>Expected spending in retirement. The primary driver of how much portfolio you need to sustain.</td><td>Current spending minus work-related costs.</td></tr>
-                <tr><td>CPP ($/mo)</td><td>CPP benefit at 65. Reduces required withdrawals starting age 65.</td><td>$800 avg; check My Service Canada for your estimate.</td></tr>
-                <tr><td>OAS ($/mo)</td><td>Old Age Security benefit at 65. Supplements CPP and reduces portfolio drawdown.</td><td>$700 avg (2024 max ~$713).</td></tr>
+                <tr><td>CPP ($/mo)</td><td>Your estimated CPP benefit at age 65. Use CPP Age to model deferral.</td><td>$800 avg; check My Service Canada for your estimate.</td></tr>
+                <tr><td>OAS ($/mo)</td><td>Your estimated OAS benefit at age 65. Use OAS Age to model deferral.</td><td>$700 avg (2024 max ~$713).</td></tr>
+                <tr><td>CPP Age</td><td>Age you plan to start CPP. Deferring past 65 gives +8.4%/yr (max +42% at 70). Taking early at 60 gives −36%.</td><td>65 default; 70 if you can afford to wait.</td></tr>
+                <tr><td>OAS Age</td><td>Age you plan to start OAS. Deferring past 65 gives +7.2%/yr (max +36% at 70). Minimum is 65.</td><td>65 default; defer if still working at 65.</td></tr>
                 <tr><td>Life Expectancy</td><td>Planning horizon end age. A longer expectancy requires a larger nest egg to avoid outliving your savings.</td><td>90 recommended for conservatism.</td></tr>
                 <tr><td>Inflation toggle</td><td>Shows projections in today's purchasing power by deflating all future values at 2%/yr.</td><td>Enable for realistic planning.</td></tr>
               </tbody>
@@ -304,6 +339,7 @@
             <p><strong>Retirement Income Sources</strong> — Year-by-year retirement income: portfolio withdrawals, CPP, OAS, and extra income.</p>
             <p><strong>Annual Withdrawal Rate</strong> — Your projected withdrawal rate vs. the 4% safe withdrawal rule benchmark.</p>
             <p><strong>Net Worth Over Time</strong> — Total assets (portfolio + real estate/other) minus liabilities over time.</p>
+            <p><strong>Sequence of Returns Risk</strong> — Shows three scenarios: no crash (base), a 30% crash early in retirement, and the same crash late. Early crashes are much more damaging because you have fewer years to recover while still withdrawing.</p>
           </div>
 
           <!-- Section 4: CPP / OAS Reference -->
@@ -334,11 +370,11 @@
       </div>
     </div>
 
-    <footer id="app-footer">v54</footer>
+    <footer id="app-footer">v56</footer>
   </div>
 
-  <script src="src/retirement.js?v=54"></script>
-  <script src="src/charts.js?v=54"></script>
-  <script src="src/addon.js?v=54"></script>
+  <script src="src/retirement.js?v=56"></script>
+  <script src="src/charts.js?v=56"></script>
+  <script src="src/addon.js?v=56"></script>
 </body>
 </html>

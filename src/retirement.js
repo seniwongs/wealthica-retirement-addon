@@ -189,7 +189,7 @@ const Retirement = (() => {
 
   /**
    * Build retirement income sources per year.
-   * CPP assumed to start at 65, OAS at 65 (simplified).
+   * CPP and OAS start at user-specified ages (default 65).
    */
   function buildIncomeSources(params) {
     const {
@@ -201,6 +201,8 @@ const Retirement = (() => {
       extraMonthlyIncome,
       cppMonthly = 800,
       oasMonthly = 700,
+      cppStartAge = 65,
+      oasStartAge = 65,
     } = params;
 
     const retirementYear = currentYear + (retirementAge - currentAge);
@@ -209,9 +211,8 @@ const Retirement = (() => {
 
     for (let y = retirementYear; y <= endYear; y++) {
       const age = retirementAge + (y - retirementYear);
-      const govBenefitsActive = age >= 65;
-      const cpp = govBenefitsActive ? cppMonthly * 12 : 0;
-      const oas = govBenefitsActive ? oasMonthly * 12 : 0;
+      const cpp = age >= cppStartAge ? cppMonthly * 12 : 0;
+      const oas = age >= oasStartAge ? oasMonthly * 12 : 0;
       const extra = extraMonthlyIncome * 12;
       const totalPassive = cpp + oas + extra;
       const totalNeeded = monthlyExpenses * 12;
@@ -242,11 +243,14 @@ const Retirement = (() => {
 
   /**
    * FIRE number: portfolio needed to sustain expenses indefinitely at 4% SWR.
-   * Uses net expenses after CPP, OAS, and extra income.
+   * Only subtracts CPP/OAS if they're active at retirement (start age <= retirement age).
    */
   function calcFireNumber(params) {
-    const { monthlyExpenses, cppMonthly = 0, oasMonthly = 0, extraMonthlyIncome = 0 } = params;
-    const annualNetExpenses = Math.max(0, (monthlyExpenses - cppMonthly - oasMonthly - extraMonthlyIncome) * 12);
+    const { monthlyExpenses, cppMonthly = 0, oasMonthly = 0, extraMonthlyIncome = 0,
+            retirementAge = 65, cppStartAge = 65, oasStartAge = 65 } = params;
+    const cpp = retirementAge >= cppStartAge ? cppMonthly : 0;
+    const oas = retirementAge >= oasStartAge ? oasMonthly : 0;
+    const annualNetExpenses = Math.max(0, (monthlyExpenses - cpp - oas - extraMonthlyIncome) * 12);
     return Math.round(annualNetExpenses / 0.04);
   }
 
@@ -272,6 +276,60 @@ const Retirement = (() => {
       prev = limit;
     }
     return Math.round(tax);
+  }
+
+  /**
+   * Sequence-of-returns risk: 3 deterministic retirement scenarios showing how
+   * crash timing affects portfolio survival.
+   * Returns { labels (ages), base, earlyCrash, lateCrash } — each an array of values.
+   */
+  function sequenceOfReturns(params) {
+    const {
+      currentValue,
+      retirementAge,
+      currentAge,
+      lifeExpectancy,
+      annualReturnRate,
+      monthlyExpenses,
+      extraMonthlyIncome = 0,
+      cppMonthly = 0,
+      oasMonthly = 0,
+      cppStartAge = 65,
+      oasStartAge = 65,
+    } = params;
+
+    const yearsToRetirement = Math.max(0, retirementAge - currentAge);
+    const retirementYears = Math.max(1, lifeExpectancy - retirementAge);
+    const r = annualReturnRate;
+    const CRASH = 0.30;
+
+    const portfolioAtRetirement = currentValue * Math.pow(1 + r, yearsToRetirement);
+
+    function simulate(crashYearIndex) {
+      let value = portfolioAtRetirement;
+      const values = [Math.round(value)];
+      for (let y = 0; y < retirementYears; y++) {
+        const age = retirementAge + y;
+        const cpp = age >= cppStartAge ? cppMonthly * 12 : 0;
+        const oas = age >= oasStartAge ? oasMonthly * 12 : 0;
+        const netWithdrawal = Math.max(0, monthlyExpenses * 12 - cpp - oas - extraMonthlyIncome * 12);
+        value = value * (1 + r) - netWithdrawal;
+        if (y === crashYearIndex) value *= (1 - CRASH);
+        value = Math.max(0, value);
+        values.push(Math.round(value));
+      }
+      return values;
+    }
+
+    const labels = Array.from({ length: retirementYears + 1 }, (_, i) => retirementAge + i);
+    const lateCrashYear = Math.floor(retirementYears * 0.7);
+    return {
+      labels,
+      base: simulate(-1),
+      earlyCrash: simulate(1),
+      lateCrash: simulate(lateCrashYear),
+      lateCrashAge: retirementAge + lateCrashYear,
+    };
   }
 
   /**
@@ -315,6 +373,7 @@ const Retirement = (() => {
     buildIncomeSources,
     calcRequiredMonthlySavings,
     calcFireNumber,
+    sequenceOfReturns,
     estimateCurrentAge,
     sumPortfolio,
     sumLiabilities,
