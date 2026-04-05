@@ -253,6 +253,9 @@ if (typeof Addon === 'undefined' || !_inWealthicaFrame) {
     const p = state.params;
     const inflationRate = document.getElementById('inflation-toggle')?.checked ? 0.02 : 0;
 
+    const rrspRefund = (p.rrspAnnualContribution || 0) * 0.30;
+    const effectiveAnnualContribution = (p.annualContribution || 0) + rrspRefund;
+
     const calcParams = {
       currentValue: currentPortfolioValue,
       currentYear,
@@ -263,6 +266,7 @@ if (typeof Addon === 'undefined' || !_inWealthicaFrame) {
       monthlyExpenses: p.monthlyExpenses,
       extraMonthlyIncome: p.extraMonthlyIncome,
       targetAmount: p.targetAmount,
+      annualContribution: effectiveAnnualContribution,
       cppMonthly: p.cppMonthly,
       oasMonthly: p.oasMonthly,
       cppStartAge: p.cppStartAge,
@@ -402,6 +406,9 @@ if (typeof Addon === 'undefined' || !_inWealthicaFrame) {
       ? runwaySensitivity.returnRate
       : p.annualReturnRate;
 
+    const rrspRefundRunway = (p.rrspAnnualContribution || 0) * 0.30;
+    const effectiveAnnualContributionRunway = (p.annualContribution || 0) + rrspRefundRunway;
+
     const calcParams = {
       currentValue: currentPortfolioValue,
       currentYear,
@@ -411,6 +418,7 @@ if (typeof Addon === 'undefined' || !_inWealthicaFrame) {
       annualReturnRate,
       monthlyExpenses: p.monthlyExpenses,
       extraMonthlyIncome: p.extraMonthlyIncome,
+      annualContribution: effectiveAnnualContributionRunway,
       cppMonthly: p.cppMonthly,
       oasMonthly: p.oasMonthly,
       cppStartAge: p.cppStartAge,

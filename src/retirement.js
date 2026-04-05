@@ -50,6 +50,10 @@ const Retirement = (() => {
   /**
    * Project portfolio forward from today to retirement, then through retirement.
    * Returns array of { year, value, phase: 'accumulation'|'retirement' }
+   *
+   * Fixes applied:
+   * - Accumulation phase now adds annualContribution each year
+   * - Retirement phase subtracts CPP/OAS income (gated by start age)
    */
   function projectPortfolio(params) {
     const {
@@ -58,10 +62,16 @@ const Retirement = (() => {
       retirementAge,
       currentAge,
       lifeExpectancy,
-      annualReturnRate,    // e.g. 0.06
+      annualReturnRate,
+      annualContribution = 0,
       monthlyExpenses,
-      extraMonthlyIncome,  // CPP, OAS, part-time, etc.
+      extraMonthlyIncome = 0,
+      cppMonthly = 0,
+      oasMonthly = 0,
+      cppStartAge = 65,
+      oasStartAge = 65,
       targetAmount,
+      inflationRate = 0,
     } = params;
 
     const yearsToRetirement = retirementAge - currentAge;
@@ -71,16 +81,23 @@ const Retirement = (() => {
     const result = [];
     let value = currentValue;
 
-    // Accumulation phase
+    // Accumulation phase — grow portfolio and add annual contributions
     for (let y = currentYear; y <= retirementYear; y++) {
       result.push({ year: y, value: Math.round(value), phase: 'accumulation' });
-      value = value * (1 + annualReturnRate);
+      value = value * (1 + annualReturnRate) + annualContribution;
     }
 
-    // Retirement phase
-    const annualWithdrawalNet = (monthlyExpenses - extraMonthlyIncome) * 12;
+    // Retirement phase — withdraw net of CPP/OAS income
+    const annualGrossWithdrawal = (monthlyExpenses - extraMonthlyIncome) * 12;
     for (let y = retirementYear + 1; y <= endYear; y++) {
-      value = value * (1 + annualReturnRate) - Math.max(0, annualWithdrawalNet);
+      const age = retirementAge + (y - retirementYear);
+      const cpp = age >= cppStartAge ? cppMonthly * 12 : 0;
+      const oas = age >= oasStartAge ? oasMonthly * 12 : 0;
+      const baseWithdrawal = Math.max(0, annualGrossWithdrawal - cpp - oas);
+      const withdrawal = inflationRate > 0
+        ? baseWithdrawal * Math.pow(1 + inflationRate, y - retirementYear)
+        : baseWithdrawal;
+      value = value * (1 + annualReturnRate) - withdrawal;
       result.push({ year: y, value: Math.max(0, Math.round(value)), phase: 'retirement' });
       if (value <= 0) break;
     }
@@ -95,9 +112,27 @@ const Retirement = (() => {
   }
 
   /**
-   * Monte Carlo simulation — 1000 runs with randomized annual returns.
-   * Returns { percentiles: { p10, p25, p50, p75, p90 }, successRate, runs }
-   * Each percentile is an array of { year, value }
+   * Seeded PRNG (Mulberry32) — deterministic random for Monte Carlo.
+   * Same inputs always produce the same sequence.
+   */
+  function mulberry32(seed) {
+    let s = seed >>> 0;
+    return function () {
+      s = (s + 0x6D2B79F5) >>> 0;
+      let t = Math.imul(s ^ (s >>> 15), 1 | s);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+
+  /**
+   * Monte Carlo simulation — randomized annual return scenarios.
+   * Returns { percentiles: { p10, p25, p50, p75, p90 }, successRate, years }
+   *
+   * Fixes applied:
+   * - Seeded PRNG so same inputs always produce the same success rate
+   * - Accumulation phase now adds annualContribution each year
+   * - Retirement phase subtracts CPP/OAS income (gated by start age)
    */
   function monteCarlo(params, numSimulations = 1000) {
     const {
@@ -107,19 +142,37 @@ const Retirement = (() => {
       currentAge,
       lifeExpectancy,
       annualReturnRate,
-      returnVolatility = 0.12,  // stddev of annual returns
+      annualContribution = 0,
+      returnVolatility = 0.12,
       monthlyExpenses,
-      extraMonthlyIncome,
+      extraMonthlyIncome = 0,
+      cppMonthly = 0,
+      oasMonthly = 0,
+      cppStartAge = 65,
+      oasStartAge = 65,
     } = params;
 
     const yearsToRetirement = retirementAge - currentAge;
     const totalYears = lifeExpectancy - currentAge;
-    const annualNetWithdrawal = Math.max(0, (monthlyExpenses - extraMonthlyIncome) * 12);
+    const annualBaseWithdrawal = Math.max(0, (monthlyExpenses - extraMonthlyIncome) * 12);
 
-    // Box-Muller normal random
+    // Deterministic seed derived from key inputs
+    const seed = Math.abs(
+      Math.round(currentValue / 100) * 7 +
+      Math.round(annualReturnRate * 10000) * 13 +
+      yearsToRetirement * 17 +
+      totalYears * 19 +
+      cppStartAge * 23 +
+      oasStartAge * 29 +
+      Math.round(cppMonthly) * 31 +
+      Math.round(oasMonthly) * 37
+    ) % 2147483647;
+    const rand = mulberry32(seed);
+
+    // Box-Muller normal random using seeded PRNG
     function randn() {
-      const u = 1 - Math.random();
-      const v = Math.random();
+      const u = 1 - rand();
+      const v = rand();
       return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
     }
 
@@ -132,11 +185,15 @@ const Retirement = (() => {
       let depleted = false;
 
       for (let y = 0; y < totalYears; y++) {
+        const age = currentAge + y;
         const r = annualReturnRate + returnVolatility * randn();
         if (y < yearsToRetirement) {
-          value = value * (1 + r);
+          value = value * (1 + r) + annualContribution;
         } else {
-          value = value * (1 + r) - annualNetWithdrawal;
+          const cppIncome = age >= cppStartAge ? cppMonthly * 12 : 0;
+          const oasIncome = age >= oasStartAge ? oasMonthly * 12 : 0;
+          const netWithdrawal = Math.max(0, annualBaseWithdrawal - cppIncome - oasIncome);
+          value = value * (1 + r) - netWithdrawal;
         }
         value = Math.max(0, value);
         run.push(Math.round(value));
@@ -170,21 +227,33 @@ const Retirement = (() => {
 
   /**
    * Calculate year-by-year withdrawal rate during retirement.
-   * Returns array of { year, withdrawalRate, portfolioValue, annualWithdrawal }
+   * Uses actual portfolio withdrawal (net of CPP/OAS) for accurate rates.
+   *
+   * Fix: now derives annualWithdrawal from incomeSources to account for CPP/OAS.
    */
   function calcWithdrawalRates(projection, params) {
-    const { monthlyExpenses, extraMonthlyIncome, retirementAge, currentAge, currentYear } = params;
+    const {
+      monthlyExpenses, extraMonthlyIncome = 0,
+      retirementAge, currentAge, currentYear,
+      cppMonthly = 0, oasMonthly = 0,
+      cppStartAge = 65, oasStartAge = 65,
+    } = params;
     const retirementYear = currentYear + (retirementAge - currentAge);
-    const annualWithdrawal = Math.max(0, (monthlyExpenses - extraMonthlyIncome) * 12);
 
     return projection
       .filter(p => p.phase === 'retirement' && p.value > 0)
-      .map(p => ({
-        year: p.year,
-        portfolioValue: p.value,
-        annualWithdrawal,
-        withdrawalRate: (annualWithdrawal / p.value) * 100,
-      }));
+      .map(p => {
+        const age = retirementAge + (p.year - retirementYear);
+        const cpp = age >= cppStartAge ? cppMonthly * 12 : 0;
+        const oas = age >= oasStartAge ? oasMonthly * 12 : 0;
+        const annualWithdrawal = Math.max(0, (monthlyExpenses - extraMonthlyIncome) * 12 - cpp - oas);
+        return {
+          year: p.year,
+          portfolioValue: p.value,
+          annualWithdrawal,
+          withdrawalRate: p.value > 0 ? (annualWithdrawal / p.value) * 100 : 0,
+        };
+      });
   }
 
   /**
@@ -227,17 +296,24 @@ const Retirement = (() => {
 
   /**
    * Monthly savings required to reach targetAmount by retirement.
-   * Returns 0 if current portfolio alone will exceed the target.
+   * Accounts for future value of both current portfolio AND existing annual contributions.
+   * Returns 0 if current portfolio + contributions will exceed the target.
+   *
+   * Fix: now subtracts FV of existing annualContribution from the gap calculation.
    */
   function calcRequiredMonthlySavings(params) {
-    const { currentValue, targetAmount, retirementAge, currentAge, annualReturnRate } = params;
+    const { currentValue, targetAmount, retirementAge, currentAge, annualReturnRate, annualContribution = 0 } = params;
     const years = retirementAge - currentAge;
     if (years <= 0) return 0;
-    const fvCurrent = currentValue * Math.pow(1 + annualReturnRate, years);
-    const needed = targetAmount - fvCurrent;
-    if (needed <= 0) return 0;
     const monthlyRate = Math.pow(1 + annualReturnRate, 1 / 12) - 1;
     const months = years * 12;
+    const fvCurrent = currentValue * Math.pow(1 + annualReturnRate, years);
+    // FV of existing annual contributions as level monthly payments
+    const fvExisting = monthlyRate > 0
+      ? (annualContribution / 12) * (Math.pow(1 + monthlyRate, months) - 1) / monthlyRate
+      : (annualContribution / 12) * months;
+    const needed = targetAmount - fvCurrent - fvExisting;
+    if (needed <= 0) return 0;
     return Math.ceil(needed * monthlyRate / (Math.pow(1 + monthlyRate, months) - 1));
   }
 
@@ -282,6 +358,8 @@ const Retirement = (() => {
    * Sequence-of-returns risk: 3 deterministic retirement scenarios showing how
    * crash timing affects portfolio survival.
    * Returns { labels (ages), base, earlyCrash, lateCrash } — each an array of values.
+   *
+   * Fix: portfolioAtRetirement now includes future value of annual contributions.
    */
   function sequenceOfReturns(params) {
     const {
@@ -290,6 +368,7 @@ const Retirement = (() => {
       currentAge,
       lifeExpectancy,
       annualReturnRate,
+      annualContribution = 0,
       monthlyExpenses,
       extraMonthlyIncome = 0,
       cppMonthly = 0,
@@ -303,7 +382,12 @@ const Retirement = (() => {
     const r = annualReturnRate;
     const CRASH = 0.30;
 
-    const portfolioAtRetirement = currentValue * Math.pow(1 + r, yearsToRetirement);
+    // Include future value of contributions in retirement starting portfolio
+    const fvCurrent = currentValue * Math.pow(1 + r, yearsToRetirement);
+    const fvContrib = r > 0
+      ? annualContribution * (Math.pow(1 + r, yearsToRetirement) - 1) / r
+      : annualContribution * yearsToRetirement;
+    const portfolioAtRetirement = fvCurrent + fvContrib;
 
     function simulate(crashYearIndex) {
       let value = portfolioAtRetirement;
