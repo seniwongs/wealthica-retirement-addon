@@ -253,7 +253,12 @@ if (typeof Addon === 'undefined' || !_inWealthicaFrame) {
     const p = state.params;
     const inflationRate = document.getElementById('inflation-toggle')?.checked ? 0.02 : 0;
 
-    const rrspRefund = (p.rrspAnnualContribution || 0) * 0.30;
+    const rrspContrib = p.rrspAnnualContribution || 0;
+    const impliedIncome = rrspContrib > 0
+      ? Math.max(p.annualContribution || 0, rrspContrib / 0.18)
+      : (p.annualContribution || 0);
+    const rrspRefund = Retirement.estimateAnnualTax(impliedIncome) -
+      Retirement.estimateAnnualTax(Math.max(0, impliedIncome - rrspContrib));
     const effectiveAnnualContribution = (p.annualContribution || 0) + rrspRefund;
 
     const calcParams = {
@@ -267,8 +272,8 @@ if (typeof Addon === 'undefined' || !_inWealthicaFrame) {
       extraMonthlyIncome: p.extraMonthlyIncome,
       targetAmount: p.targetAmount,
       annualContribution: effectiveAnnualContribution,
-      cppMonthly: p.cppMonthly,
-      oasMonthly: p.oasMonthly,
+      cppMonthly: Retirement.adjustCPP(p.cppMonthly, p.cppStartAge),
+      oasMonthly: Retirement.adjustOAS(p.oasMonthly, p.oasStartAge),
       cppStartAge: p.cppStartAge,
       oasStartAge: p.oasStartAge,
       returnVolatility: mcSensitivity.volatility !== null ? mcSensitivity.volatility : 0.12,
@@ -406,7 +411,12 @@ if (typeof Addon === 'undefined' || !_inWealthicaFrame) {
       ? runwaySensitivity.returnRate
       : p.annualReturnRate;
 
-    const rrspRefundRunway = (p.rrspAnnualContribution || 0) * 0.30;
+    const rrspContribRunway = p.rrspAnnualContribution || 0;
+    const impliedIncomeRunway = rrspContribRunway > 0
+      ? Math.max(p.annualContribution || 0, rrspContribRunway / 0.18)
+      : (p.annualContribution || 0);
+    const rrspRefundRunway = Retirement.estimateAnnualTax(impliedIncomeRunway) -
+      Retirement.estimateAnnualTax(Math.max(0, impliedIncomeRunway - rrspContribRunway));
     const effectiveAnnualContributionRunway = (p.annualContribution || 0) + rrspRefundRunway;
 
     const calcParams = {
@@ -419,8 +429,8 @@ if (typeof Addon === 'undefined' || !_inWealthicaFrame) {
       monthlyExpenses: p.monthlyExpenses,
       extraMonthlyIncome: p.extraMonthlyIncome,
       annualContribution: effectiveAnnualContributionRunway,
-      cppMonthly: p.cppMonthly,
-      oasMonthly: p.oasMonthly,
+      cppMonthly: Retirement.adjustCPP(p.cppMonthly, p.cppStartAge),
+      oasMonthly: Retirement.adjustOAS(p.oasMonthly, p.oasStartAge),
       cppStartAge: p.cppStartAge,
       oasStartAge: p.oasStartAge,
       inflationRate,
@@ -463,11 +473,13 @@ if (typeof Addon === 'undefined' || !_inWealthicaFrame) {
     if (!_lastCalcParams) return;
     const p = state.params;
     const estimatedGrossIncome = (_lastAvgMonthlySavings + p.monthlyExpenses) * 12;
+    const estimatedRetirementIncome = p.monthlyExpenses * 12;
     const rrspData = Retirement.calcRrspBenefit({
       annualContribution: p.rrspAnnualContribution,
       yearsToRetirement: Math.max(1, p.retirementAge - p.currentAge),
       annualReturnRate: p.annualReturnRate,
       estimatedGrossIncome,
+      estimatedRetirementIncome,
     });
     if (!rrspData) return;
 

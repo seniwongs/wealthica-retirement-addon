@@ -87,16 +87,20 @@ const Retirement = (() => {
       value = value * (1 + annualReturnRate) + annualContribution;
     }
 
-    // Retirement phase — withdraw net of CPP/OAS income
-    const annualGrossWithdrawal = (monthlyExpenses - extraMonthlyIncome) * 12;
+    // Retirement phase — withdraw net of CPP/OAS income + OAS clawback
+    const annualBaseExpenses = monthlyExpenses * 12;
+    const annualBaseExtra    = extraMonthlyIncome * 12;
     for (let y = retirementYear + 1; y <= endYear; y++) {
       const age = retirementAge + (y - retirementYear);
-      const cpp = age >= cppStartAge ? cppMonthly * 12 : 0;
-      const oas = age >= oasStartAge ? oasMonthly * 12 : 0;
-      const baseWithdrawal = Math.max(0, annualGrossWithdrawal - cpp - oas);
-      const withdrawal = inflationRate > 0
-        ? baseWithdrawal * Math.pow(1 + inflationRate, y - retirementYear)
-        : baseWithdrawal;
+      const inflFactor = inflationRate > 0 ? Math.pow(1 + inflationRate, y - retirementYear) : 1;
+      const cpp   = age >= cppStartAge ? cppMonthly * 12 * inflFactor : 0;
+      const oas   = age >= oasStartAge ? oasMonthly * 12 * inflFactor : 0;
+      const extra = annualBaseExtra * inflFactor;
+      const inflatedExpenses = annualBaseExpenses * inflFactor;
+      const portfolioWithdrawal = Math.max(0, inflatedExpenses - cpp - oas - extra);
+      const grossIncome = portfolioWithdrawal + cpp + oas + extra;
+      const oasClawback = calculateOASClawback(grossIncome, oas, inflFactor);
+      const withdrawal = portfolioWithdrawal + oasClawback;
       value = value * (1 + annualReturnRate) - withdrawal;
       result.push({ year: y, value: Math.max(0, Math.round(value)), phase: 'retirement' });
       if (value <= 0) break;
@@ -150,11 +154,12 @@ const Retirement = (() => {
       oasMonthly = 0,
       cppStartAge = 65,
       oasStartAge = 65,
+      inflationRate = 0,
     } = params;
 
     const yearsToRetirement = retirementAge - currentAge;
     const totalYears = lifeExpectancy - currentAge;
-    const annualBaseWithdrawal = Math.max(0, (monthlyExpenses - extraMonthlyIncome) * 12);
+    const annualBaseExpenses = monthlyExpenses * 12;
 
     // Deterministic seed derived from key inputs
     const seed = Math.abs(
@@ -186,13 +191,22 @@ const Retirement = (() => {
 
       for (let y = 0; y < totalYears; y++) {
         const age = currentAge + y;
-        const r = annualReturnRate + returnVolatility * randn();
+        // Lognormal return — geometric mean equals user's expected return (no volatility drag)
+        const sigma = returnVolatility;
+        const muLog = Math.log(1 + annualReturnRate) - 0.5 * sigma * sigma;
+        const r = Math.exp(muLog + sigma * randn()) - 1;
         if (y < yearsToRetirement) {
           value = value * (1 + r) + annualContribution;
         } else {
-          const cppIncome = age >= cppStartAge ? cppMonthly * 12 : 0;
-          const oasIncome = age >= oasStartAge ? oasMonthly * 12 : 0;
-          const netWithdrawal = Math.max(0, annualBaseWithdrawal - cppIncome - oasIncome);
+          const yearsRetired = y - yearsToRetirement;
+          const inflFactor = inflationRate > 0 ? Math.pow(1 + inflationRate, yearsRetired) : 1;
+          const cppIncome   = age >= cppStartAge ? cppMonthly * 12 * inflFactor : 0;
+          const oasIncome   = age >= oasStartAge ? oasMonthly * 12 * inflFactor : 0;
+          const extraIncome = extraMonthlyIncome * 12 * inflFactor;
+          const portfolioWithdrawal = Math.max(0, annualBaseExpenses * inflFactor - cppIncome - oasIncome - extraIncome);
+          const grossIncome = portfolioWithdrawal + cppIncome + oasIncome + extraIncome;
+          const oasClawback = calculateOASClawback(grossIncome, oasIncome, inflFactor);
+          const netWithdrawal = portfolioWithdrawal + oasClawback;
           value = value * (1 + r) - netWithdrawal;
         }
         value = Math.max(0, value);
@@ -278,17 +292,20 @@ const Retirement = (() => {
     const endYear = currentYear + (lifeExpectancy - currentAge);
     const result = [];
 
+    const inflationRate = params.inflationRate || 0;
     for (let y = retirementYear; y <= endYear; y++) {
       const age = retirementAge + (y - retirementYear);
-      const cpp = age >= cppStartAge ? cppMonthly * 12 : 0;
-      const oas = age >= oasStartAge ? oasMonthly * 12 : 0;
-      const extra = extraMonthlyIncome * 12;
+      const inflFactor = inflationRate > 0 ? Math.pow(1 + inflationRate, y - retirementYear) : 1;
+      const cpp   = age >= cppStartAge ? cppMonthly * 12 * inflFactor : 0;
+      const oas   = age >= oasStartAge ? oasMonthly * 12 * inflFactor : 0;
+      const extra = extraMonthlyIncome * 12 * inflFactor;
+      const totalNeeded = monthlyExpenses * 12 * inflFactor;
       const totalPassive = cpp + oas + extra;
-      const totalNeeded = monthlyExpenses * 12;
       const portfolioWithdrawal = Math.max(0, totalNeeded - totalPassive);
       const grossIncome = portfolioWithdrawal + cpp + oas + extra;
-      const estimatedTax = estimateAnnualTax(grossIncome);
-      result.push({ year: y, portfolioWithdrawal, cpp, oas, extra, estimatedTax });
+      const oasClawback = calculateOASClawback(grossIncome, oas, inflFactor);
+      const estimatedTax = estimateAnnualTax(grossIncome, age);
+      result.push({ year: y, portfolioWithdrawal, cpp, oas, extra, estimatedTax, oasClawback });
     }
 
     return result;
@@ -323,35 +340,86 @@ const Retirement = (() => {
    */
   function calcFireNumber(params) {
     const { monthlyExpenses, cppMonthly = 0, oasMonthly = 0, extraMonthlyIncome = 0,
-            retirementAge = 65, cppStartAge = 65, oasStartAge = 65 } = params;
+            retirementAge = 65, cppStartAge = 65, oasStartAge = 65,
+            safeWithdrawalRate = 0.04 } = params;
     const cpp = retirementAge >= cppStartAge ? cppMonthly : 0;
     const oas = retirementAge >= oasStartAge ? oasMonthly : 0;
     const annualNetExpenses = Math.max(0, (monthlyExpenses - cpp - oas - extraMonthlyIncome) * 12);
-    return Math.round(annualNetExpenses / 0.04);
+    return Math.round(annualNetExpenses / safeWithdrawalRate);
   }
 
-  /**
-   * Simplified Canadian combined federal + provincial effective tax on RRSP withdrawal income.
-   */
-  function estimateAnnualTax(grossAnnualIncome) {
-    const bpa = 16_000; // ~basic personal amount
-    if (grossAnnualIncome <= bpa) return 0;
-    const taxable = grossAnnualIncome - bpa;
-    // Blended federal + average provincial marginal rates
-    const brackets = [
-      [45_000, 0.205],
-      [50_000, 0.305],
-      [60_000, 0.370],
-      [Infinity, 0.430],
-    ];
+  // 2025 federal BPA (indexed)
+  const CA_BPA = 16_129;
+
+  // 2025 CRA federal income tax brackets
+  const CA_FEDERAL_BRACKETS = [
+    [57_375,   0.15],
+    [114_750,  0.205],
+    [158_468,  0.26],
+    [220_000,  0.29],
+    [Infinity, 0.33],
+  ];
+
+  // Age amount (2025): $8,790, clawed back at 15% above $44,325
+  const CA_AGE_AMOUNT = 8_790;
+  const CA_AGE_CLAWBACK_THRESHOLD = 44_325;
+
+  // OAS recovery tax (2025 indexed threshold)
+  const OAS_CLAWBACK_THRESHOLD = 93_454;
+
+  function estimateAnnualTax(grossAnnualIncome, age = 0) {
+    if (grossAnnualIncome <= CA_BPA) return 0;
+    const taxable = grossAnnualIncome - CA_BPA;
+
     let tax = 0, prev = 0;
-    for (const [limit, rate] of brackets) {
+    for (const [limit, rate] of CA_FEDERAL_BRACKETS) {
       const slice = Math.min(taxable - prev, limit - prev);
       if (slice <= 0) break;
       tax += slice * rate;
       prev = limit;
     }
-    return Math.round(tax);
+
+    // Age amount credit for 65+
+    if (age >= 65) {
+      const eligibleAgeAmount = Math.max(
+        0,
+        CA_AGE_AMOUNT - Math.max(0, grossAnnualIncome - CA_AGE_CLAWBACK_THRESHOLD) * 0.15,
+      );
+      tax -= eligibleAgeAmount * 0.15;
+    }
+
+    // Approximate provincial tax (~10% blended average)
+    const provincial = (grossAnnualIncome - CA_BPA) * 0.10;
+
+    return Math.max(0, Math.round(tax + provincial));
+  }
+
+  // OAS Recovery Tax (clawback) — capped at OAS amount
+  function calculateOASClawback(grossIncome, oasAnnual, inflFactor = 1) {
+    const threshold = OAS_CLAWBACK_THRESHOLD * inflFactor;
+    if (grossIncome <= threshold || oasAnnual <= 0) return 0;
+    const excess = grossIncome - threshold;
+    return Math.min(Math.round(excess * 0.15), oasAnnual);
+  }
+
+  /**
+   * Adjust CPP monthly benefit for claiming age. Baseline: 65.
+   * Early (<65): −0.6%/month. Late (>65): +0.7%/month. Clamped to [60, 70].
+   */
+  function adjustCPP(baseMonthly, startAge) {
+    const clamped = Math.max(60, Math.min(70, startAge));
+    const months = (clamped - 65) * 12;
+    const rate = months < 0 ? 0.006 : 0.007;
+    return Math.round(baseMonthly * (1 + months * rate));
+  }
+
+  /**
+   * Adjust OAS monthly benefit for deferral past 65. +0.6%/month. Clamped to [65, 70].
+   */
+  function adjustOAS(baseMonthly, startAge) {
+    const clamped = Math.max(65, Math.min(70, startAge));
+    const months = (clamped - 65) * 12;
+    return Math.round(baseMonthly * (1 + months * 0.006));
   }
 
   /**
@@ -397,8 +465,9 @@ const Retirement = (() => {
         const cpp = age >= cppStartAge ? cppMonthly * 12 : 0;
         const oas = age >= oasStartAge ? oasMonthly * 12 : 0;
         const netWithdrawal = Math.max(0, monthlyExpenses * 12 - cpp - oas - extraMonthlyIncome * 12);
-        value = value * (1 + r) - netWithdrawal;
-        if (y === crashYearIndex) value *= (1 - CRASH);
+        // Crash applies to the growth factor before withdrawal (market drops, then you still need to withdraw)
+        const growthFactor = (1 + r) * (y === crashYearIndex ? (1 - CRASH) : 1);
+        value = value * growthFactor - netWithdrawal;
         value = Math.max(0, value);
         values.push(Math.round(value));
       }
@@ -421,7 +490,7 @@ const Retirement = (() => {
    * Returns year-by-year growth comparison and at-retirement after-tax values.
    */
   function calcRrspBenefit(params) {
-    const { annualContribution, yearsToRetirement, annualReturnRate, estimatedGrossIncome } = params;
+    const { annualContribution, yearsToRetirement, annualReturnRate, estimatedGrossIncome, estimatedRetirementIncome } = params;
     if (!annualContribution || yearsToRetirement <= 0) return null;
 
     const taxWithout   = estimateAnnualTax(estimatedGrossIncome);
@@ -433,16 +502,20 @@ const Retirement = (() => {
     const n = yearsToRetirement;
     const fvFactor = r > 0 ? (Math.pow(1 + r, n) - 1) / r : n;
 
-    // RRSP: contribution + refund reinvested, grows tax-free; taxed at ~half marginal rate at withdrawal
-    const rrspFV       = (annualContribution + annualRefund) * fvFactor;
-    const rrspAfterTax = rrspFV * (1 - marginalRate * 0.5);
+    // RRSP: contribution + refund reinvested; taxed at retirement effective rate
+    const rrspFV = (annualContribution + annualRefund) * fvFactor;
+    const retirementIncome = estimatedRetirementIncome ?? estimatedGrossIncome;
+    const retirementTax = estimateAnnualTax(retirementIncome);
+    const retirementEffectiveRate = retirementIncome > 0 ? retirementTax / retirementIncome : marginalRate * 0.5;
+    const rrspAfterTax = rrspFV * (1 - retirementEffectiveRate);
 
-    // Taxable: no refund, 0.5%/yr tax drag on returns, 15% effective tax on gains at withdrawal
+    // Taxable: 0.5%/yr tax drag; 2024 capital gains inclusion (50% up to $250k, then 2/3)
     const taxableReturn   = Math.max(0, r - 0.005);
     const taxableFVFactor = taxableReturn > 0 ? (Math.pow(1 + taxableReturn, n) - 1) / taxableReturn : n;
     const taxableFV       = annualContribution * taxableFVFactor;
     const taxableGains    = Math.max(0, taxableFV - annualContribution * n);
-    const taxableAfterTax = taxableFV - taxableGains * 0.15;
+    const taxableInclusion = Math.min(taxableGains, 250_000) * 0.5 + Math.max(0, taxableGains - 250_000) * (2 / 3);
+    const taxableAfterTax = taxableFV - taxableInclusion * marginalRate;
 
     // Year-by-year cumulative values for the chart
     const years = Array.from({ length: n + 1 }, (_, i) => i);
@@ -506,5 +579,9 @@ const Retirement = (() => {
     estimateCurrentAge,
     sumPortfolio,
     sumLiabilities,
+    estimateAnnualTax,
+    calculateOASClawback,
+    adjustCPP,
+    adjustOAS,
   };
 })();
